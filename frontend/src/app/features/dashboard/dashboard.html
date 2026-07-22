@@ -1,3 +1,39 @@
-<h1> Senus PLC Board Dashboard</h1>
+<h1>Board Performance Dashboard</h1>
 
-<p>This is dashbord </p>
+<p class="subtitle">
+    Executive summary of key financial indicators
+</p>
+
+<div class="metrics-grid">
+
+    @for(metric of metrics; track metric.title){
+
+        <app-metric-card
+            [title]="metric.title"
+            [value]="metric.value"
+            [trend]="metric.trend">
+        </app-metric-card>
+
+    }
+
+</div>
+
+<div class="dashboard-grid">
+
+    <section class="panel">
+
+        <h2>Revenue Trend</h2>
+
+        <div class="chart-placeholder">
+            Chart Coming Soon
+        </div>
+
+    </section>
+
+<section class="panel">
+
+    <app-ai-insights/>
+
+</section>
+
+</div>

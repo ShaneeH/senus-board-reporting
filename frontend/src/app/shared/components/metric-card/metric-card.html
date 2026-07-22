@@ -1,0 +1,21 @@
+<div class="metric-card">
+
+    <p class="metric-title">
+        {{ title() }}
+    </p>
+
+    <h2 class="metric-value">
+        {{ value() }}
+    </h2>
+
+    @if (trend()) {
+
+        <span class="metric-trend">
+
+            {{ trend() }}
+
+        </span>
+
+    }
+
+</div>
