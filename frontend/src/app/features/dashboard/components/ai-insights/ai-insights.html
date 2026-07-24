@@ -2,10 +2,14 @@
 
 <ul>
 
-    <li>Revenue increased by 12%</li>
+    @for (insight of insights(); track insight.message) {
 
-    <li>Cash position remains strong</li>
+        <li>
 
-    <li>Monitor working capital over the next quarter</li>
+            {{ insight.message }}
+
+        </li>
+
+    }
 
 </ul>
