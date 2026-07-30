@@ -12,16 +12,20 @@
 
 <!-- This Panel is Reserved for the Revenue Charts -->
 <div class="dashboard-grid">
-  <section class="panel">
-    <h2>Revenue Trend</h2>
-
+  <app-chart-panel title="Revenue Trend">
     @if (financialData) {
       <app-revenue-chart [financialData]="financialData"> </app-revenue-chart>
     }
-  </section>
+  </app-chart-panel>
 
   <!-- This Panel is Reserved for the AI Insigths-->
-  <section class="panel">
+  <app-chart-panel title="A.I Insigths">
     <app-ai-insights [insights]="insights"> </app-ai-insights>
-  </section>
+  </app-chart-panel>
 </div>
+
+<app-chart-panel title="Profitability">
+  @if (financialData) {
+    <app-profitability-chart [financialData]="financialData"> </app-profitability-chart>
+  }
+</app-chart-panel>

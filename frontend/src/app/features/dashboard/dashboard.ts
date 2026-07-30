@@ -11,12 +11,17 @@ import { MetricsResponse } from '../../core/models/metrics-response.model';
 import { MetricService } from '../../core/services/metrics.service';
 import { AiInsightsService } from '../../core/services/ai-insights.service';
 
+import { ChartPanel } from '../../shared/components/chart-panel/chart-panel';
+import { ProfitabilityChart } from './components/profitability-chart/profitability-chart';
+
 @Component({
   selector: 'app-dashboard',
   imports: [
     MetricCard,
     AiInsights,
-    RevenueChart
+    RevenueChart,
+    ChartPanel,
+    ProfitabilityChart
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
