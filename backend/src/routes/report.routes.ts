@@ -1,13 +1,21 @@
 import { Router } from "express";
 import multer from "multer";
+
 import { db } from "../database/db";
-import {analysePDF,uploadPDF} from "../services/openai.service";
+
+import {
+    analysePDF,
+    uploadPDF
+} from "../services/openai.service";
+
+import {
+    saveFinancialDocument,
+    DuplicateDocumentError
+} from "../services/documents.service";
+
 import { analysePrompt } from "../utils/prompts";
-import { parseAndValidateReport} from "../utils/report-validator";
-import {saveFinancialDocument,documentExists, DuplicateDocumentError} from "../services/documents.service";
 import { generateDocumentHash } from "../utils/document-hash";
-
-
+import { parseAndValidateReport } from "../utils/report-validator";
 
 const router = Router();
 
@@ -17,13 +25,16 @@ const upload = multer({
 
 router.get("/test-db", async (_req, res) => {
     try {
+
         const result = await db.query("SELECT NOW();");
 
         return res.json({
             success: true,
             databaseTime: result.rows[0].now,
         });
+
     } catch (error) {
+
         const message =
             error instanceof Error
                 ? error.message
@@ -35,79 +46,104 @@ router.get("/test-db", async (_req, res) => {
             success: false,
             error: message,
         });
+
     }
 });
 
 // Adds a new financial PDF
-router.post("/add", upload.single("report"), async (req, res) => {
-    try {
+router.post(
+    "/add",
+    upload.single("report"),
+    async (req, res) => {
 
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                error: "No PDF uploaded."
+        try {
+
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    error: "No PDF uploaded."
+                });
+            }
+
+            // Get the uploaded PDF
+            const pdfBuffer = req.file.buffer;
+
+            // Generate a SHA256 hash
+            const documentHash =
+                generateDocumentHash(pdfBuffer);
+
+            // Reject duplicate PDFs
+
+            // Upload the PDF to OpenAI
+            const pdfId =
+                await uploadPDF(pdfBuffer);
+
+            // Analyse the document
+            const aiResponse =
+                await analysePDF(
+                    pdfId,
+                    analysePrompt
+                );
+
+            // Validate the returned JSON
+            const aiReport =
+                parseAndValidateReport(aiResponse);
+
+            // Save everything
+            await saveFinancialDocument(
+                documentHash,
+                pdfId,
+                aiReport
+            );
+
+            return res.status(201).json({
+
+                success: true,
+
+                message:
+                    "The PDF was successfully uploaded and analysed.",
+
+                uploadedPdfId: pdfId,
+
+                documentHash,
+
+                report: aiReport
+
             });
+
         }
+        catch (error) {
 
-        // Get the uploaded PDF
-        const pdfBuffer = req.file.buffer;
+            if (error instanceof DuplicateDocumentError) {
 
-        // Generate a SHA256 hash of the PDF
-        const documentHash = generateDocumentHash(pdfBuffer);
+                return res.status(409).json({
 
-        // Reject if this exact PDF already exists
-        if (await documentExists(documentHash)) {
-            throw new DuplicateDocumentError();
-        }
+                    success: false,
 
-        // Upload PDF to OpenAI
-        const pdfId = await uploadPDF(pdfBuffer);
+                    error: error.message
 
-        // Analyse with GPT
-        const aiResponse = await analysePDF(
-            pdfId,
-            analysePrompt
-        );
+                });
 
-        // Validate the returned JSON
-        const aiReport = parseAndValidateReport(aiResponse);
+            }
 
-        // Save document + enrich financial periods
-        await saveFinancialDocument(
-            documentHash,
-            pdfId,
-            aiReport
-        );
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error";
 
-        return res.status(201).json({
-            success: true,
-            message: "The document was successfully processed.",
-            uploadedPdfId: pdfId,
-            documentHash,
-            report: aiReport
-        });
+            console.error(message);
 
-    } catch (error) {
+            return res.status(500).json({
 
-        if (error instanceof DuplicateDocumentError) {
-            return res.status(409).json({
                 success: false,
-                error: error.message
+
+                error: message
+
             });
+
         }
 
-        const message =
-            error instanceof Error
-                ? error.message
-                : "Unknown error";
-
-        console.error(message);
-
-        return res.status(500).json({
-            success: false,
-            error: message
-        });
     }
-});
+);
 
 export default router;
