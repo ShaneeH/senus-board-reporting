@@ -1,0 +1,303 @@
+import { PoolClient } from "pg";
+import { db } from "../database/db";
+import {
+    FinancialReport,
+    FinancialPeriod
+} from "../utils/report-validator";
+
+export class DuplicateDocumentError extends Error {
+    constructor() {
+        super("This exact PDF has already been uploaded.");
+        this.name = "DuplicateDocumentError";
+    }
+}
+
+export async function documentExists(
+    documentHash: string
+): Promise<boolean> {
+    const result = await db.query(
+        `
+        SELECT document_id
+        FROM documents
+        WHERE document_hash = $1
+        LIMIT 1;
+        `,
+        [documentHash]
+    );
+
+    return (result.rowCount ?? 0) > 0;
+}
+
+export async function saveFinancialDocument(
+    documentHash: string,
+    openaiFileId: string,
+    report: FinancialReport
+): Promise<void> {
+    const client = await db.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const duplicate = await documentExistsWithClient(
+            client,
+            documentHash
+        );
+
+        if (duplicate) {
+            throw new DuplicateDocumentError();
+        }
+
+        const companyId = await getOrCreateCompany(
+            client,
+            report.company
+        );
+
+        const documentId = await insertDocument(
+            client,
+            companyId,
+            documentHash,
+            openaiFileId,
+            report
+        );
+
+        for (const period of report.periods) {
+            const periodId = await upsertFinancialPeriod(
+                client,
+                companyId,
+                period
+            );
+
+            await linkDocumentToPeriod(
+                client,
+                documentId,
+                periodId
+            );
+        }
+
+        await client.query("COMMIT");
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+async function documentExistsWithClient(
+    client: PoolClient,
+    documentHash: string
+): Promise<boolean> {
+    const result = await client.query(
+        `
+        SELECT document_id
+        FROM documents
+        WHERE document_hash = $1
+        LIMIT 1;
+        `,
+        [documentHash]
+    );
+
+    return (result.rowCount ?? 0) > 0;
+}
+
+async function getOrCreateCompany(
+    client: PoolClient,
+    companyName: string
+): Promise<number> {
+    const cleanedName = companyName.trim();
+
+    const existing = await client.query<{
+        company_id: number;
+    }>(
+        `
+        SELECT company_id
+        FROM companies
+        WHERE LOWER(company_name) = LOWER($1)
+        LIMIT 1;
+        `,
+        [cleanedName]
+    );
+
+    if (existing.rows[0]) {
+        return existing.rows[0].company_id;
+    }
+
+    const inserted = await client.query<{
+        company_id: number;
+    }>(
+        `
+        INSERT INTO companies (company_name)
+        VALUES ($1)
+        RETURNING company_id;
+        `,
+        [cleanedName]
+    );
+
+    return inserted.rows[0].company_id;
+}
+
+async function insertDocument(
+    client: PoolClient,
+    companyId: number,
+    documentHash: string,
+    openaiFileId: string,
+    report: FinancialReport
+): Promise<number> {
+    const result = await client.query<{
+        document_id: number;
+    }>(
+        `
+        INSERT INTO documents (
+            company_id,
+            document_hash,
+            openai_file_id,
+            report_name,
+            report_type,
+            report_date,
+            currency,
+            source,
+            summary
+        )
+        VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9
+        )
+        RETURNING document_id;
+        `,
+        [
+            companyId,
+            documentHash,
+            openaiFileId,
+            report.reportName,
+            report.reportType,
+            report.reportDate,
+            report.currency,
+            report.source,
+            report.summary
+        ]
+    );
+
+    return result.rows[0].document_id;
+}
+
+async function upsertFinancialPeriod(
+    client: PoolClient,
+    companyId: number,
+    financialPeriod: FinancialPeriod
+): Promise<number> {
+    const result = await client.query<{
+        period_id: number;
+    }>(
+        `
+        INSERT INTO financial_periods (
+            company_id,
+            period,
+            period_end,
+            period_label,
+            revenue,
+            gross_profit,
+            operating_profit,
+            ebitda,
+            net_profit,
+            cash,
+            debt,
+            customers,
+            net_assets,
+            summary
+        )
+        VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9, $10,
+            $11, $12, $13, $14
+        )
+        ON CONFLICT (company_id, period)
+        DO UPDATE SET
+            period_end = COALESCE(
+                EXCLUDED.period_end,
+                financial_periods.period_end
+            ),
+            period_label = COALESCE(
+                EXCLUDED.period_label,
+                financial_periods.period_label
+            ),
+            revenue = COALESCE(
+                EXCLUDED.revenue,
+                financial_periods.revenue
+            ),
+            gross_profit = COALESCE(
+                EXCLUDED.gross_profit,
+                financial_periods.gross_profit
+            ),
+            operating_profit = COALESCE(
+                EXCLUDED.operating_profit,
+                financial_periods.operating_profit
+            ),
+            ebitda = COALESCE(
+                EXCLUDED.ebitda,
+                financial_periods.ebitda
+            ),
+            net_profit = COALESCE(
+                EXCLUDED.net_profit,
+                financial_periods.net_profit
+            ),
+            cash = COALESCE(
+                EXCLUDED.cash,
+                financial_periods.cash
+            ),
+            debt = COALESCE(
+                EXCLUDED.debt,
+                financial_periods.debt
+            ),
+            customers = COALESCE(
+                EXCLUDED.customers,
+                financial_periods.customers
+            ),
+            net_assets = COALESCE(
+                EXCLUDED.net_assets,
+                financial_periods.net_assets
+            ),
+            summary = COALESCE(
+                EXCLUDED.summary,
+                financial_periods.summary
+            ),
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING period_id;
+        `,
+        [
+            companyId,
+            financialPeriod.period,
+            financialPeriod.periodEnd,
+            financialPeriod.periodLabel,
+            financialPeriod.revenue,
+            financialPeriod.grossProfit,
+            financialPeriod.operatingProfit,
+            financialPeriod.ebitda,
+            financialPeriod.netProfit,
+            financialPeriod.cash,
+            financialPeriod.debt,
+            financialPeriod.customers,
+            financialPeriod.netAssets,
+            financialPeriod.summary
+        ]
+    );
+
+    return result.rows[0].period_id;
+}
+
+async function linkDocumentToPeriod(
+    client: PoolClient,
+    documentId: number,
+    periodId: number
+): Promise<void> {
+    await client.query(
+        `
+        INSERT INTO document_periods (
+            document_id,
+            period_id
+        )
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING;
+        `,
+        [documentId, periodId]
+    );
+}

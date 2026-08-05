@@ -1,6 +1,6 @@
 # AI Financial Document Intelligence Platform
 
-An intelligent platform that turns complex financial reports into clear, structured data — automatically.
+An intelligent platform that turns complex financial reports into clear, structured data automatically.
 
 This project is being developed as part of a graduate software engineering technical assessment. It shows how modern AI can work together with solid backend systems and databases to solve a real business problem.
 

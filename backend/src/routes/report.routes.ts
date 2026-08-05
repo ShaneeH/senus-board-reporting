@@ -1,12 +1,13 @@
 import { Router } from "express";
 import multer from "multer";
-
 import { db } from "../database/db";
 import {analysePDF,uploadPDF} from "../services/openai.service";
-
 import { analysePrompt } from "../utils/prompts";
-import { generateReportId } from "../utils/report-id";
 import { parseAndValidateReport} from "../utils/report-validator";
+import {saveFinancialDocument,documentExists, DuplicateDocumentError} from "../services/documents.service";
+import { generateDocumentHash } from "../utils/document-hash";
+
+
 
 const router = Router();
 
@@ -38,75 +39,75 @@ router.get("/test-db", async (_req, res) => {
 });
 
 // Adds a new financial PDF
-router.post( "/add", upload.single("report"), async (req, res) => {
-        try {
-            if (!req.file) {
-                return res.status(400).json({
-                    success: false,
-                    error: "No PDF uploaded.",
-                });
-            }
+router.post("/add", upload.single("report"), async (req, res) => {
+    try {
 
-            // First of all we get the PDF from the User 
-            // Then send it to OpenAI Upload API
-            const pdfId = await uploadPDF(req.file.buffer);
-
-            // We then get A.I analysis on the PDF using our prompt 
-            const aiResponse = await analysePDF(
-                pdfId,
-                analysePrompt
-            );
-
-            // We Make sure the Response is Valid
-            const aiReport = parseAndValidateReport(aiResponse);
-
-            // We then generate an ID for that Report
-            const reportId = generateReportId(
-                aiReport.company,
-                aiReport.reportName
-            );
-
-            // Check whether report already exists
-
-            // Insert document into PostgreSQL
-
-            // Insert financial periods into PostgreSQL
-
-            return res.status(200).json({
-                success: true,
-                message:
-                    "The PDF was successfully uploaded and analysed.",
-                uploadedPdfId: pdfId,
-                reportId,
-                report: aiReport,
-            });
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error";
-
-            console.error(message);
-
-            const validationErrors = [
-                "OpenAI returned invalid JSON.",
-                "OpenAI returned an invalid report.",
-                "Unable to determine the company from the uploaded PDF.",
-                "Unable to determine the report name from the uploaded PDF.",
-                "Unable to determine the report type from the uploaded PDF.",
-                "No financial reporting periods were found in the uploaded PDF.",
-            ];
-
-            const status = validationErrors.includes(message)
-                ? 400
-                : 500;
-
-            return res.status(status).json({
+        if (!req.file) {
+            return res.status(400).json({
                 success: false,
-                error: message,
+                error: "No PDF uploaded."
             });
         }
+
+        // Get the uploaded PDF
+        const pdfBuffer = req.file.buffer;
+
+        // Generate a SHA256 hash of the PDF
+        const documentHash = generateDocumentHash(pdfBuffer);
+
+        // Reject if this exact PDF already exists
+        if (await documentExists(documentHash)) {
+            throw new DuplicateDocumentError();
+        }
+
+        // Upload PDF to OpenAI
+        const pdfId = await uploadPDF(pdfBuffer);
+
+        // Analyse with GPT
+        const aiResponse = await analysePDF(
+            pdfId,
+            analysePrompt
+        );
+
+        // Validate the returned JSON
+        const aiReport = parseAndValidateReport(aiResponse);
+
+        // Save document + enrich financial periods
+        await saveFinancialDocument(
+            documentHash,
+            pdfId,
+            aiReport
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "The document was successfully processed.",
+            uploadedPdfId: pdfId,
+            documentHash,
+            report: aiReport
+        });
+
+    } catch (error) {
+
+        if (error instanceof DuplicateDocumentError) {
+            return res.status(409).json({
+                success: false,
+                error: error.message
+            });
+        }
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Unknown error";
+
+        console.error(message);
+
+        return res.status(500).json({
+            success: false,
+            error: message
+        });
     }
-);
+});
 
 export default router;
