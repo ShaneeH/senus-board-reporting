@@ -16,11 +16,12 @@ import {
 import { analysePrompt } from "../utils/prompts";
 import { generateDocumentHash } from "../utils/document-hash";
 import { parseAndValidateReport } from "../utils/report-validator";
+import { uploadLimiter } from "../middleware/rate-limit";
 
 const router = Router();
 
 const upload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.memoryStorage()
 });
 
 router.get("/test-db", async (_req, res) => {
@@ -53,6 +54,7 @@ router.get("/test-db", async (_req, res) => {
 // Adds a new financial PDF
 router.post(
     "/add",
+    uploadLimiter,
     upload.single("report"),
     async (req, res) => {
 

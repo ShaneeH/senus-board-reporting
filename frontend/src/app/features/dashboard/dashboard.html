@@ -1,31 +1,3 @@
-<h1>Board Performance Dashboard</h1>
 
-<!-- This Panel is Reserved for the KPI Cards -->
-<p class="subtitle">Executive summary of key financial indicators</p>
-
-<div class="metrics-grid">
-  @for (metric of metrics; track metric.title) {
-    <app-metric-card [title]="metric.title" [value]="metric.value" [trend]="metric.trend">
-    </app-metric-card>
-  }
-</div>
-
-<!-- This Panel is Reserved for the Revenue Charts -->
-<div class="dashboard-grid">
-  <app-chart-panel title="Revenue Trend">
-    @if (financialData) {
-      <app-revenue-chart [financialData]="financialData"> </app-revenue-chart>
-    }
-  </app-chart-panel>
-
-  <!-- This Panel is Reserved for the AI Insigths-->
-  <app-chart-panel title="A.I Insigths">
-    <app-ai-insights [insights]="insights"> </app-ai-insights>
-  </app-chart-panel>
-</div>
-
-<app-chart-panel title="Profitability">
-  @if (financialData) {
-    <app-profitability-chart [financialData]="financialData"> </app-profitability-chart>
-  }
-</app-chart-panel>
+<h2>Hey</h2>
+{{x}}
