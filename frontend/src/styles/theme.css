@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,480;9..144,560&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+    --background: #121014;
+    --surface: #17171A;
+    --surface-light: #202023;
+    --border: #2A2A2E;
+    --primary: #FFFFFF;
+    --secondary: #B3B3B3;
+    --muted: #7B7B84;
+    --accent: #FF6A00;
+    --success: #22C55E;
+    --danger: #EF4444;
+    --warning: #FACC15;
+}
+
+:root {
+    --font-family: "IBM Plex Sans", sans-serif;
+    --font-display-face: "Fraunces", serif;
+    --font-mono: "IBM Plex Mono", monospace;
+
+    --font-display: 3.5rem;
+    --font-title: 2rem;
+    --font-heading: 1.5rem;
+    --font-body: 1rem;
+    --font-small: .875rem;
+}
+
+:root {
+
+    --radius-small: 8px;
+
+    --radius-medium: 12px;
+
+    --radius-large: 18px;
+
+}
+
+:root {
+
+    --space-xs: .5rem;
+
+    --space-sm: 1rem;
+
+    --space-md: 1.5rem;
+
+    --space-lg: 2rem;
+
+    --space-xl: 3rem;
+
+}
+
+:root {
+
+    --shadow:
+
+        0 4px 20px rgba(0,0,0,.25);
+
+}
+
+:root {
+
+    --transition:
+
+        all .2s ease;
+
+}
+
+body {
+
+    background:
+
+        var(--background);
+
+    color:
+
+        var(--primary);
+
+    font-family:
+
+        var(--font-family);
+
+}
+
+.card {
+
+    background:
+
+        var(--surface);
+
+    border:
+
+        1px solid var(--border);
+
+    border-radius:
+
+        var(--radius-large);
+
+    padding:
+
+        var(--space-lg);
+
+    transition:
+
+        var(--transition);
+
+}
+
+.card:hover {
+
+    background:
+
+        var(--surface-light);
+
+}
+
+button {
+
+    background:
+
+        var(--surface);
+
+    color:
+
+        white;
+
+    border:
+
+        1px solid var(--border);
+
+    border-radius:
+
+        var(--radius-medium);
+
+    transition:
+
+        var(--transition);
+
+}
+
+button:hover {
+
+    border-color:
+
+        var(--accent);
+
+}
+
+.kpi-value {
+    font-family: var(--font-mono);
+    font-size: 2.2rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero {
+    font-family: var(--font-display-face);
+    font-size: var(--font-display);
+    font-weight: 560;
+    letter-spacing: -0.01em;
+}
+

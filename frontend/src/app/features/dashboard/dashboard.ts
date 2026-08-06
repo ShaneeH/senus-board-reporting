@@ -1,4 +1,6 @@
 import { Component, inject } from '@angular/core';
+import { CompanyService } from '../../core/services/company.service';
+
 
 
 @Component({
@@ -10,14 +12,19 @@ import { Component, inject } from '@angular/core';
   styleUrl: './dashboard.css'
 })
 export class Dashboard {
+  private companyService = inject(CompanyService);
 
- x : number = 10;
+  x: number = 10;
 
   ngOnInit(): void {
-      let x = 10;
-    
+    this.companyService.getCompanies().subscribe({
+      next: (companies) => {
+       console.log(companies);
+       },
+      error: (e) => {
+        console.error(e);
+      }
+    });
 
-  
   }
-
 }

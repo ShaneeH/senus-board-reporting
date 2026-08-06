@@ -85,10 +85,7 @@ router.get("/", async (_req: Request, res: Response) => {
     try {
         const companies = await getCompanies();
 
-        return res.json({
-            success: true,
-            data: companies
-        });
+        return res.json(companies);
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Unknown error";
@@ -131,10 +128,7 @@ router.get("/:companyId/periods", async (req: Request, res: Response) => {
             );
         }
 
-        return res.json({
-            success: true,
-            data: periods
-        });
+        return res.json(periods);
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Unknown error";
@@ -226,10 +220,8 @@ router.get(
                 );
             }
 
-            return res.json({
-                success: true,
-                data: financialPeriod
-            });
+            return res.json(financialPeriod);
+
 
         } catch (error) {
 
@@ -283,10 +275,7 @@ router.get("/:companyId/history", async (req: Request, res: Response) => {
             );
         }
 
-        return res.json({
-            success: true,
-            data: history
-        });
+        return res.json(history)
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Unknown error";
