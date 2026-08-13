@@ -1,0 +1,32 @@
+<div class="dropdown" [class.open]="isOpen()" tabindex="0" role="combobox"
+     [attr.aria-expanded]="isOpen()" (click)="toggle()">
+
+  <div class="dropdown-trigger">
+    <span [class.placeholder]="!selected">
+      {{ selected ? selected.label : placeholder }}
+    </span>
+    <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  @if (isOpen()) {
+    <ul class="dropdown-panel" role="listbox">
+      @for (option of options; track option.value; let i = $index) {
+        <li
+          class="dropdown-option"
+          [class.active]="i === activeIndex()"
+          [class.selected]="option.value === selected?.value"
+          role="option"
+          [attr.aria-selected]="option.value === selected?.value"
+          (click)="select(option); $event.stopPropagation()"
+          (mouseenter)="activeIndex.set(i)"
+        >
+          {{ option.label }}
+        </li>
+      }
+    </ul>
+  }
+
+</div>

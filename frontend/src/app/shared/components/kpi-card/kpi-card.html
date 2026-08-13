@@ -1,0 +1,64 @@
+<div class="kpi-card">
+
+    <span class="kpi-title">
+
+        {{ title() }}
+
+    </span>
+
+    <h2 class="kpi-value">
+
+        @if (value() !== null) {
+
+            @switch (format()) {
+
+                @case ('currency') {
+
+                    {{ value() | currencyFormat }}
+
+                }
+
+                @case ('number') {
+
+                    {{ value() | number }}
+
+                }
+
+                @case ('percent') {
+
+                    {{ value() | number:'1.1-2' }}%
+
+                }
+
+            }
+
+        }
+        @else {
+
+            <span class="kpi-empty">
+
+                N/A
+
+            </span>
+
+        }
+
+    </h2>
+
+    @if (change() !== null) {
+
+        <span
+            class="kpi-change"
+            [class.positive]="change()! >= 0"
+            [class.negative]="change()! < 0"
+        >
+
+            {{ change()! >= 0 ? '▲' : '▼' }}
+
+            {{ change() | number:'1.1-1' }}%
+
+        </span>
+
+    }
+
+</div>

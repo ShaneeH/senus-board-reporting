@@ -38,6 +38,8 @@ reportName
 - Remove text inside brackets or parentheses.
 - Keep the reporting year if present.
 - reportName should describe the document, not its publication status.
+- If no explicit report name exists but there is good financial data within the pdf return 'imported doc'.
+
 
 reportType
 Must be exactly one of:

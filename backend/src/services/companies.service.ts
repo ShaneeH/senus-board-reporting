@@ -1,5 +1,5 @@
 import { db } from "../database/db";
-import { calculateFinancialMetrics} from "./financial-metrics.service";
+import { calculateFinancialMetrics } from "./financial-metrics.service";
 import { compareFinancialPeriods } from "./comparison.service";
 
 export async function getCompanies() {
@@ -7,8 +7,8 @@ export async function getCompanies() {
     const result = await db.query(
         `
         SELECT
-            company_id,
-            company_name
+            company_id AS "companyId",
+            company_name AS "companyName"
         FROM companies
         ORDER BY company_name;
         `
@@ -18,7 +18,6 @@ export async function getCompanies() {
 
 }
 
-
 export async function getCompanyPeriods(
     companyId: number
 ) {
@@ -27,7 +26,7 @@ export async function getCompanyPeriods(
         `
         SELECT
             period_id AS "periodId",
-            period AS "period",
+            period,
             period_label AS "periodLabel",
             period_end AS "periodEnd"
         FROM financial_periods
@@ -38,10 +37,10 @@ export async function getCompanyPeriods(
     );
 
     if (result.rowCount === 0) {
-    throw new Error(`Company not found in the DB with ID ${companyId}`);
-}
-
-
+        throw new Error(
+            `Company not found in the DB with ID ${companyId}.`
+        );
+    }
 
     return result.rows;
 
