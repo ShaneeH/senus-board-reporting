@@ -1,0 +1,30 @@
+<section class="profit-chart">
+
+    <div class="chart-header">
+
+        <span class="chart-eyebrow">
+            Revenue Composition
+        </span>
+
+        <h2>
+            Gross Profit
+        </h2>
+
+        <p>
+            Gross profit compared with the remaining cost of revenue.
+        </p>
+
+    </div>
+
+    <div class="chart-container">
+
+        <canvas
+            baseChart
+            type="doughnut"
+            [data]="chartData"
+            [options]="chartOptions">
+        </canvas>
+
+    </div>
+
+</section>

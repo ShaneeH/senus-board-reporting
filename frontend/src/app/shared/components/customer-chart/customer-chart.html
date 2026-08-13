@@ -1,0 +1,30 @@
+<section class="chart-section">
+
+    <div class="chart-header">
+
+        <span class="chart-eyebrow">
+            Historical Performance
+        </span>
+
+        <h2>
+            Customer Growth
+        </h2>
+
+        <p>
+            Customer base across all available reporting periods.
+        </p>
+
+    </div>
+
+    <div class="chart-container">
+
+        <canvas
+            baseChart
+            type="bar"
+            [data]="chartData"
+            [options]="chartOptions">
+        </canvas>
+
+    </div>
+
+</section>

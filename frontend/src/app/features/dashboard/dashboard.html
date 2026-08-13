@@ -107,72 +107,126 @@
         </section>
 
 
-       <div class="kpi-grid">
+        <div class="kpi-grid">
 
-    <app-kpi-card
-        title="Revenue"
-        format="currency"
-        [value]="financialPeriod.financials.revenue"
-        [change]="financialPeriod.comparison?.revenueGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Revenue"
+                format="currency"
+                [value]="financialPeriod.financials.revenue"
+                [change]="financialPeriod.comparison?.revenueGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Gross Profit"
-        format="currency"
-        [value]="financialPeriod.financials.grossProfit"
-        [change]="financialPeriod.comparison?.grossProfitGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Gross Profit"
+                format="currency"
+                [value]="financialPeriod.financials.grossProfit"
+                [change]="financialPeriod.comparison?.grossProfitGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Operating Profit"
-        format="currency"
-        [value]="financialPeriod.financials.operatingProfit"
-        [change]="financialPeriod.comparison?.operatingProfitGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Operating Profit"
+                format="currency"
+                [value]="financialPeriod.financials.operatingProfit"
+                [change]="financialPeriod.comparison?.operatingProfitGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="EBITDA"
-        format="currency"
-        [value]="financialPeriod.financials.ebitda"
-        [change]="financialPeriod.comparison?.ebitdaGrowth ?? null"
-    />
+            <app-kpi-card
+                title="EBITDA"
+                format="currency"
+                [value]="financialPeriod.financials.ebitda"
+                [change]="financialPeriod.comparison?.ebitdaGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Net Profit"
-        format="currency"
-        [value]="financialPeriod.financials.netProfit"
-        [change]="financialPeriod.comparison?.netProfitGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Net Profit"
+                format="currency"
+                [value]="financialPeriod.financials.netProfit"
+                [change]="financialPeriod.comparison?.netProfitGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Cash"
-        format="currency"
-        [value]="financialPeriod.financials.cash"
-        [change]="financialPeriod.comparison?.cashGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Cash"
+                format="currency"
+                [value]="financialPeriod.financials.cash"
+                [change]="financialPeriod.comparison?.cashGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Debt"
-        format="currency"
-        [value]="financialPeriod.financials.debt"
-        [change]="financialPeriod.comparison?.debtGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Debt"
+                format="currency"
+                [value]="financialPeriod.financials.debt"
+                [change]="financialPeriod.comparison?.debtGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Customers"
-        format="number"
-        [value]="financialPeriod.financials.customers"
-        [change]="financialPeriod.comparison?.customerGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Customers"
+                format="number"
+                [value]="financialPeriod.financials.customers"
+                [change]="financialPeriod.comparison?.customerGrowth ?? null"
+            />
 
-    <app-kpi-card
-        title="Net Assets"
-        format="currency"
-        [value]="financialPeriod.financials.netAssets"
-        [change]="financialPeriod.comparison?.netAssetGrowth ?? null"
-    />
+            <app-kpi-card
+                title="Net Assets"
+                format="currency"
+                [value]="financialPeriod.financials.netAssets"
+                [change]="financialPeriod.comparison?.netAssetGrowth ?? null"
+            />
 
-</div>
+        </div>
+
+
+        <div class="profit-chart-row">
+
+            <div class="profit-chart-wrapper">
+
+                <app-profit-chart
+                    [revenue]="financialPeriod.financials.revenue"
+                    [grossProfit]="financialPeriod.financials.grossProfit"
+                />
+
+            </div>
+
+        </div>
+
+    }
+
+
+    @if (history.length > 0) {
+
+        <section class="history-section">
+
+            <div class="history-heading">
+
+                <span>Historical Performance</span>
+
+                <h2>Company Trends</h2>
+
+            </div>
+
+
+            <div class="history-charts">
+
+                <div class="history-chart">
+
+                    <app-revenue-chart
+                        [history]="history"
+                    />
+
+                </div>
+
+
+                <div class="history-chart">
+
+                    <app-customer-chart
+                        [history]="history"
+                    />
+
+                </div>
+
+            </div>
+
+        </section>
+
     }
 
 </section>

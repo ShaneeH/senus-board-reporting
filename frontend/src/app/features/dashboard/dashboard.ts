@@ -1,10 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 
 import { CompanyService } from '../../core/services/company.service';
+import { HistoryPeriod } from '../../core/models/history-period.model';
+import { RevenueChartComponent } from '../../shared/components/revenue-chart/revenue-chart';
+import {
+    ProfitChartComponent
+} from '../../shared/components/profit-chart/profit-chart';
+import { CustomerChartComponent } from '../../shared/components/customer-chart/customer-chart';
 
 import {
     DropdownOption,
-    DropdownSelectComponent
+    DropdownSelectComponent,
 } from '../../shared/components/dropdown-selector/dropdown-selector';
 
 import {
@@ -19,8 +25,12 @@ import {
     selector: 'app-dashboard',
     standalone: true,
     imports: [
-        DropdownSelectComponent,
-        KpiCardComponent
+    DropdownSelectComponent,
+    KpiCardComponent,
+    RevenueChartComponent,
+    ProfitChartComponent,
+    CustomerChartComponent
+    
     ],
     templateUrl: './dashboard.html',
     styleUrl: './dashboard.css'
@@ -32,6 +42,7 @@ export class Dashboard implements OnInit {
     companies: DropdownOption<number>[] = [];
 
     periods: DropdownOption<string>[] = [];
+    history: HistoryPeriod[] = [];
 
     comparePeriods: DropdownOption<string>[] = [];
 
@@ -46,6 +57,8 @@ export class Dashboard implements OnInit {
 
     financialPeriod:
         FinancialPeriod | null = null;
+
+        
 
 
     ngOnInit(): void {
@@ -87,30 +100,62 @@ export class Dashboard implements OnInit {
 
     }
 
+    private loadHistory(
+    companyId: number
+): void {
 
-    onCompanySelected(
-        company: DropdownOption<number>
-    ): void {
+    this.companyService
+        .getHistory(companyId)
+        .subscribe({
 
-        this.selectedCompany = company;
+            next: history => {
 
-        /*
-         * Reset data belonging to the
-         * previously selected company.
-         */
-        this.selectedPeriod = null;
+                this.history = history;
 
-        this.selectedComparePeriod = null;
+                console.log(
+                    'Company history:',
+                    history
+                );
 
-        this.financialPeriod = null;
+            },
 
-        this.periods = [];
+            error: error => {
 
-        this.comparePeriods = [];
+                console.error(
+                    'Failed to load company history.',
+                    error
+                );
 
-        this.loadPeriods(company.value);
+            }
 
-    }
+        });
+
+}
+
+
+onCompanySelected(
+    company: DropdownOption<number>
+): void {
+
+    this.selectedCompany = company;
+
+    this.selectedPeriod = null;
+
+    this.selectedComparePeriod = null;
+
+    this.financialPeriod = null;
+
+    this.periods = [];
+
+    this.comparePeriods = [];
+
+    this.history = [];
+
+    this.loadPeriods(company.value);
+
+    this.loadHistory(company.value);
+
+}
 
 
     private loadPeriods(
