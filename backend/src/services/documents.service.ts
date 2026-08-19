@@ -1,44 +1,36 @@
 import { PoolClient } from "pg";
 
 import { db } from "../database/db";
-
 import {
     FinancialReport,
     FinancialPeriod
 } from "../utils/report-validator";
 
 export class DuplicateDocumentError extends Error {
-
     constructor() {
-
         super("This exact PDF has already been uploaded.");
-
         this.name = "DuplicateDocumentError";
-
     }
-
 }
-
-
 
 export async function saveFinancialDocument(
     documentHash: string,
     openaiFileId: string,
     report: FinancialReport
 ): Promise<void> {
-
     const client = await db.connect();
 
     try {
-
         await client.query("BEGIN");
+
+        // Check if this exact document has already been saved
         const existing = await client.query(
             `
-    SELECT 1
-    FROM documents
-    WHERE document_hash = $1
-    LIMIT 1;
-    `,
+            SELECT 1
+            FROM documents
+            WHERE document_hash = $1
+            LIMIT 1;
+            `,
             [documentHash]
         );
 
@@ -46,60 +38,47 @@ export async function saveFinancialDocument(
             throw new DuplicateDocumentError();
         }
 
-        const companyId =
-            await getOrCreateCompany(
-                client,
-                report.company
-            );
+        const companyId = await getOrCreateCompany(
+            client,
+            report.company
+        );
 
-        const documentId =
-            await insertDocument(
-                client,
-                companyId,
-                documentHash,
-                openaiFileId,
-                report
-            );
+        const documentId = await insertDocument(
+            client,
+            companyId,
+            documentHash,
+            openaiFileId,
+            report
+        );
 
         for (const period of report.periods) {
-
-            const periodId =
-                await upsertFinancialPeriod(
-                    client,
-                    companyId,
-                    period
-                );
+            const periodId = await upsertFinancialPeriod(
+                client,
+                companyId,
+                period
+            );
 
             await linkDocumentToPeriod(
                 client,
                 documentId,
                 periodId
             );
-
         }
 
         await client.query("COMMIT");
-
-    }
-    catch (error) {
-
+    } catch (error) {
         await client.query("ROLLBACK");
-
         throw error;
-
-    }
-    finally {
-
+    } finally {
         client.release();
-
     }
-
 }
 
 async function getOrCreateCompany(
     client: PoolClient,
     companyName: string
 ): Promise<number> {
+    const name = companyName.trim();
 
     const existingCompany = await client.query<{
         company_id: number;
@@ -110,7 +89,7 @@ async function getOrCreateCompany(
         WHERE LOWER(company_name) = LOWER($1)
         LIMIT 1;
         `,
-        [companyName.trim()]
+        [name]
     );
 
     if (existingCompany.rows.length > 0) {
@@ -121,19 +100,14 @@ async function getOrCreateCompany(
         company_id: number;
     }>(
         `
-        INSERT INTO companies (
-            company_name
-        )
-        VALUES (
-            $1
-        )
+        INSERT INTO companies (company_name)
+        VALUES ($1)
         RETURNING company_id;
         `,
-        [companyName.trim()]
+        [name]
     );
 
     return newCompany.rows[0].company_id;
-
 }
 
 async function insertDocument(
@@ -143,7 +117,6 @@ async function insertDocument(
     openaiFileId: string,
     report: FinancialReport
 ): Promise<number> {
-
     const result = await client.query<{
         document_id: number;
     }>(
@@ -177,7 +150,6 @@ async function insertDocument(
     );
 
     return result.rows[0].document_id;
-
 }
 
 async function upsertFinancialPeriod(
@@ -185,7 +157,6 @@ async function upsertFinancialPeriod(
     companyId: number,
     period: FinancialPeriod
 ): Promise<number> {
-
     const result = await client.query<{
         period_id: number;
     }>(
@@ -213,64 +184,51 @@ async function upsertFinancialPeriod(
         )
 
         ON CONFLICT (company_id, period)
-
         DO UPDATE SET
-
             period_end = COALESCE(
                 EXCLUDED.period_end,
                 financial_periods.period_end
             ),
-
             period_label = COALESCE(
                 EXCLUDED.period_label,
                 financial_periods.period_label
             ),
-
             revenue = COALESCE(
                 EXCLUDED.revenue,
                 financial_periods.revenue
             ),
-
             gross_profit = COALESCE(
                 EXCLUDED.gross_profit,
                 financial_periods.gross_profit
             ),
-
             operating_profit = COALESCE(
                 EXCLUDED.operating_profit,
                 financial_periods.operating_profit
             ),
-
             ebitda = COALESCE(
                 EXCLUDED.ebitda,
                 financial_periods.ebitda
             ),
-
             net_profit = COALESCE(
                 EXCLUDED.net_profit,
                 financial_periods.net_profit
             ),
-
             cash = COALESCE(
                 EXCLUDED.cash,
                 financial_periods.cash
             ),
-
             debt = COALESCE(
                 EXCLUDED.debt,
                 financial_periods.debt
             ),
-
             customers = COALESCE(
                 EXCLUDED.customers,
                 financial_periods.customers
             ),
-
             net_assets = COALESCE(
                 EXCLUDED.net_assets,
                 financial_periods.net_assets
             ),
-
             updated_at = CURRENT_TIMESTAMP
 
         RETURNING period_id;
@@ -293,7 +251,6 @@ async function upsertFinancialPeriod(
     );
 
     return result.rows[0].period_id;
-
 }
 
 async function linkDocumentToPeriod(
@@ -301,24 +258,15 @@ async function linkDocumentToPeriod(
     documentId: number,
     periodId: number
 ): Promise<void> {
-
     await client.query(
         `
         INSERT INTO document_periods (
             document_id,
             period_id
         )
-        VALUES (
-            $1,
-            $2
-        )
-
+        VALUES ($1, $2)
         ON CONFLICT DO NOTHING;
         `,
-        [
-            documentId,
-            periodId
-        ]
+        [documentId, periodId]
     );
-
 }

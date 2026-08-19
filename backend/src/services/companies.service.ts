@@ -99,8 +99,7 @@ export async function getFinancialPeriod(
 
     const currentPeriod = result.rows[0];
 
-    const metrics =
-        calculateFinancialMetrics(currentPeriod);
+    const metrics = calculateFinancialMetrics(currentPeriod);
 
     if (!compareTo) {
 

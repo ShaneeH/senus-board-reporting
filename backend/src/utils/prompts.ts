@@ -15,6 +15,7 @@ General rules:
 - Numbers must be JSON numbers.
 - Remove currency symbols and thousands separators.
 - Negative values must remain negative.
+- Values shown in parentheses, e.g. "(1,234)", represent negative numbers: -1234.
 - Dates must use YYYY-MM-DD where possible.
 - Use the legal company name exactly as shown.
 - One document may contain multiple reporting periods.
@@ -23,7 +24,64 @@ General rules:
 - Prefer non-null values when merging duplicate periods.
 - Use the same currency for every period unless the document explicitly changes currency.
 
+Unit scale rules:
+- Financial statements often declare a reporting scale near the statement header or
+  table title, e.g. "in millions", "€000", "(£ thousands)", "amounts in billions",
+  "$m", "£'000".
+- Detect this scale declaration for each statement or table in the document.
+- Multiply every extracted numeric value by its scale factor so the returned number
+  is the true absolute value, not the as-printed value.
+  - "in thousands" / "'000" / "£000" -> multiply by 1,000
+  - "in millions" / "$m" / "€m" -> multiply by 1,000,000
+  - "in billions" / "$bn" -> multiply by 1,000,000,000
+- If no scale is declared anywhere in the document, assume the numbers are already
+  absolute values and do not scale them.
+- Different statements in the same document (income statement vs. balance sheet vs.
+  cash flow statement) may declare different scales. Apply each table's own scale to
+  its own values, do not assume one scale applies document-wide.
+- This scale conversion is required and is not a violation of "never calculate
+  derived metrics" — converting a stated unit to its absolute value is not deriving
+  a new metric, it is correctly reading the one that is printed.
+- customers is a count, not a monetary value, and must never be scaled even if it
+  appears in a table that declares a monetary scale.
+
 Document rules:
+
+company
+- Return the company's legal name exactly as it appears on the cover page, statement
+  header, or auditor's report of the document — not as it appears in narrative or
+  marketing text elsewhere in the document.
+- If the cover page and the financial statements state the name differently (e.g. a
+  trading name on the cover vs. a full legal name on the statements), use the name
+  from the financial statements, since that is the legally binding entity name.
+- Preserve the legal suffix exactly as printed: plc, Ltd, Limited, Inc, Inc., Corp,
+  Corporation, AG, SE, NV, GmbH, LLC, and so on. Do not translate, expand, abbreviate,
+  or omit it.
+- Do not add a suffix that is not printed in the document. If no legal suffix appears
+  anywhere in the document, return the name without one.
+- Do not append a country, exchange listing, or descriptor that is not part of the
+  legal name itself (e.g. do not turn "Star Games plc" into "Star Games plc Ireland"
+  or "Star Games PLC (Dublin)").
+- Do not combine multiple name variants seen in the document into one string (e.g. if
+  the cover says "Star Games" and a footnote says "Star Games plc", return
+  "Star Games plc" alone — never "Star Games Group plc Ltd" or similar merged forms).
+- Use the name exactly as capitalised in the document's statement header; do not
+  convert case (do not upper-case or title-case a name that is printed differently).
+- If the document is a group/consolidated report for a parent covering subsidiaries,
+  return the parent company's own legal name, not a subsidiary's.
+- Statement headers often name the reporting scope alongside the legal name, e.g.
+  "Samsung Electronics Co., Ltd. and its subsidiaries", "Star Games plc and its
+  subsidiaries", "ABC Corp and Subsidiaries", "XYZ Group and its consolidated
+  entities". Remove this scope descriptor and return only the legal entity name:
+  "Samsung Electronics Co., Ltd.", "Star Games plc", "ABC Corp".
+- Common scope descriptors to remove from the end of the name (case-insensitive):
+  "and its subsidiaries", "and subsidiaries", "and its consolidated subsidiaries",
+  "and consolidated subsidiaries", "and its group companies", "consolidated".
+  Only remove these when they trail the legal name as a scope qualifier — never
+  remove a word that is part of the registered legal name itself.
+- After removing a scope descriptor, the legal suffix rule above still applies: the
+  result must end in the entity's actual legal suffix (plc, Ltd, Inc, AG, Corp,
+  etc.), not be cut off mid-name.
 
 reportName
 - Use the official document title.
@@ -39,7 +97,6 @@ reportName
 - Keep the reporting year if present.
 - reportName should describe the document, not its publication status.
 - If no explicit report name exists but there is good financial data within the pdf return 'imported doc'.
-
 
 reportType
 Must be exactly one of:
@@ -101,6 +158,8 @@ Rules:
 - Never include month names.
 - Never return duplicate periods.
 - Return one object for each normalised period.
+- The fiscal year end month may not be December. Base FY/Q/H labels on the company's
+  own fiscal calendar as stated in the document, not on the calendar year.
 
 periodLabel rules:
 
@@ -126,13 +185,41 @@ periodEnd
 - If the date is not explicitly stated, return null.
 
 Metric rules:
+- revenue is total revenue, net revenue, turnover, or net sales as reported.
+- grossProfit is reported gross profit or gross margin in absolute currency terms,
+  not a percentage.
 - operatingProfit is the reported operating profit or operating loss.
-- netProfit is the reported net profit or net loss.
+- ebitda is the reported EBITDA figure only if the document explicitly states a
+  figure labelled EBITDA or Adjusted EBITDA. Do not calculate it from other line
+  items if it is not explicitly stated.
+- netProfit is the reported net profit, net loss, profit for the year, or profit
+  attributable to shareholders.
 - cash is cash and cash equivalents.
 - debt is total borrowings or total debt.
 - customers is the reported customer count for that period.
 - netAssets is reported net assets or net liabilities.
 - Return net liabilities as negative values.
+- If a document reports a metric only as a percentage or ratio with no absolute
+  currency or count figure available anywhere in the document, return null for that
+  field. Do not back-calculate the absolute value from the percentage.
+- If the same metric is reported more than once for the same period (e.g. as-reported
+  vs. constant-currency, or statutory vs. adjusted), prefer the as-reported /
+  statutory figure unless the document clearly marks one as primary.
+
+Source rules:
+- source should identify which section or statement the figures were primarily drawn
+  from (e.g. "Consolidated Income Statement", "Condensed Balance Sheet").
+- If figures for a single period are drawn from more than one statement, name the
+  primary one.
+
+Consistency check:
+- Before returning a period's figures, check that revenue is not smaller than
+  grossProfit, and that grossProfit is not smaller than operatingProfit, unless the
+  document explicitly reports a negative gross margin.
+- If figures appear internally inconsistent (for example, a value that is three or
+  more orders of magnitude out of line with the other figures in the same table),
+  re-read the source figures and scale before returning them rather than returning
+  the inconsistent value.
 
 Return exactly this JSON:
 
@@ -156,7 +243,7 @@ Return exactly this JSON:
       "cash": null,
       "debt": null,
       "customers": null,
-      "netAssets": null,
+      "netAssets": null
     }
   ]
 }

@@ -1,8 +1,33 @@
 import { CurrencyFormatPipe } from './currency-format-pipe';
 
 describe('CurrencyFormatPipe', () => {
-  it('create an instance', () => {
-    const pipe = new CurrencyFormatPipe();
+  let pipe: CurrencyFormatPipe;
+
+  beforeEach(() => {
+    pipe = new CurrencyFormatPipe();
+  });
+
+  it('should create an instance', () => {
     expect(pipe).toBeTruthy();
+  });
+
+  it('should return a dash for null values', () => {
+    expect(pipe.transform(null)).toBe('—');
+  });
+
+  it('should format normal currency values', () => {
+    expect(pipe.transform(500)).toBe('€500');
+  });
+
+  it('should format thousands', () => {
+    expect(pipe.transform(25_000)).toBe('€25.0K');
+  });
+
+  it('should format millions', () => {
+    expect(pipe.transform(2_500_000)).toBe('€2.50M');
+  });
+
+  it('should format billions', () => {
+    expect(pipe.transform(1_500_000_000)).toBe('€1.50B');
   });
 });

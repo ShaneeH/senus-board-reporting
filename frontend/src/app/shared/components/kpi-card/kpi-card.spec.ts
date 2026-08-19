@@ -1,18 +1,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { KpiCard } from './kpi-card';
+import { KpiCardComponent } from './kpi-card';
 
-describe('KpiCard', () => {
-  let component: KpiCard;
-  let fixture: ComponentFixture<KpiCard>;
+describe('KpiCardComponent', () => {
+  let component: KpiCardComponent;
+  let fixture: ComponentFixture<KpiCardComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [KpiCard],
+      imports: [KpiCardComponent]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(KpiCard);
+    fixture = TestBed.createComponent(KpiCardComponent);
     component = fixture.componentInstance;
+
+    // Required component inputs need values before the template renders.
+    fixture.componentRef.setInput('title', 'Revenue');
+    fixture.componentRef.setInput('value', 1000000);
+    fixture.componentRef.setInput('format', 'currency');
+
     fixture.detectChanges();
   });
 

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { AppShell } from './app-shell';
 
@@ -9,10 +10,15 @@ describe('AppShell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShell],
+      providers: [
+        // AppShell contains router based components and needs router services.
+        provideRouter([])
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppShell);
     component = fixture.componentInstance;
+
     fixture.detectChanges();
   });
 

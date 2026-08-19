@@ -1,11 +1,4 @@
 .chart-section {
-    margin-top: 1.25rem;
-    padding: 1rem 1.25rem;
-
-    background: #18181b;
-
-    border: 1px solid #2b2b2f;
-
     border-radius: 12px;
 }
 
@@ -22,7 +15,7 @@
 
     margin-bottom: 0.25rem;
 
-    color: #a1a1aa;
+    color: #FF6A00;
 
     font-size: 0.65rem;
 
@@ -46,7 +39,6 @@
     margin-bottom: 0;
 
     color: #a1a1aa;
-    font-size: 0.8rem;
 }
 
 .chart-container {

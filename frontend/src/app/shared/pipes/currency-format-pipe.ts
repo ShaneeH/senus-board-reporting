@@ -6,26 +6,24 @@ import { Pipe, PipeTransform } from '@angular/core';
 })
 export class CurrencyFormatPipe implements PipeTransform {
 
+  // Keeps large financial values compact and easier to scan.
   transform(value: number | null | undefined): string {
+    if (value == null) return '—';
 
-    if (value == null) {
-      return '—';
-    }
+    const absoluteValue = Math.abs(value);
 
-    if (Math.abs(value) >= 1_000_000_000) {
+    if (absoluteValue >= 1_000_000_000) {
       return `€${(value / 1_000_000_000).toFixed(2)}B`;
     }
 
-    if (Math.abs(value) >= 1_000_000) {
+    if (absoluteValue >= 1_000_000) {
       return `€${(value / 1_000_000).toFixed(2)}M`;
     }
 
-    if (Math.abs(value) >= 1_000) {
+    if (absoluteValue >= 1_000) {
       return `€${(value / 1_000).toFixed(1)}K`;
     }
 
     return `€${value.toLocaleString()}`;
-
   }
-
 }

@@ -25,9 +25,8 @@ export interface FinancialReport {
     summary: string | null;
 }
 
-export function parseAndValidateReport(
-    aiResponse: string
-): FinancialReport {
+// Parses the OpenAI response and checks the main fields we need.
+export function parseAndValidateReport(aiResponse: string): FinancialReport {
     let report: unknown;
 
     try {
@@ -42,40 +41,22 @@ export function parseAndValidateReport(
 
     const candidate = report as Partial<FinancialReport>;
 
-    if (
-        typeof candidate.company !== "string" ||
-        candidate.company.trim() === ""
-    ) {
-        throw new Error(
-            "Unable to determine the company from the uploaded PDF."
-        );
+    // Company, report name and report type are required.
+    if (typeof candidate.company !== "string" || !candidate.company.trim()) {
+        throw new Error("Unable to determine the company from the uploaded PDF.");
     }
 
-    if (
-        typeof candidate.reportName !== "string" ||
-        candidate.reportName.trim() === ""
-    ) {
-        throw new Error(
-            "Unable to determine the report name from the uploaded PDF."
-        );
+    if (typeof candidate.reportName !== "string" || !candidate.reportName.trim()) {
+        throw new Error("Unable to determine the report name from the uploaded PDF.");
     }
 
-    if (
-        typeof candidate.reportType !== "string" ||
-        candidate.reportType.trim() === ""
-    ) {
-        throw new Error(
-            "Unable to determine the report type from the uploaded PDF."
-        );
+    if (typeof candidate.reportType !== "string" || !candidate.reportType.trim()) {
+        throw new Error("Unable to determine the report type from the uploaded PDF.");
     }
 
-    if (
-        !Array.isArray(candidate.periods) ||
-        candidate.periods.length === 0
-    ) {
-        throw new Error(
-            "No financial reporting periods were found in the uploaded PDF."
-        );
+    // There must be at least one financial period in the document.
+    if (!Array.isArray(candidate.periods) || candidate.periods.length === 0) {
+        throw new Error("No financial reporting periods were found in the uploaded PDF.");
     }
 
     return candidate as FinancialReport;

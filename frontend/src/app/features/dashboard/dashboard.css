@@ -31,26 +31,17 @@
 }
 
 .dashboard-toolbar {
-
-    display: grid;
-
-    grid-template-columns: repeat(2, minmax(250px, 350px));
-
-    gap: 2rem;
-
-    margin-bottom: 3rem;
-
+  display: flex;
+  flex-wrap: nowrap;       
+  gap: 12px;               
+  align-items: flex-end;  
 }
 
 .toolbar-item {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: .75rem;
-
+  flex: 1 1 0;               
+  min-width: 0;               
 }
+
 
 .toolbar-item label {
 
@@ -117,5 +108,58 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 
     gap: 1.5rem;
+
+}
+
+.history-section {
+    margin-top: 3rem;
+
+    padding-top: 2rem;
+
+    border-top: 1px solid #27272a;
+}
+
+.history-heading {
+    margin-bottom: 1.5rem;
+}
+
+.history-heading span {
+    color: #71717a;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.history-heading h2 {
+    margin: 0.4rem 0 0;
+    color: #d0d3d3;
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+.history-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.history-chart-card {
+    min-width: 0;
+}
+
+.history-chart-card app-revenue-chart,
+.history-chart-card app-customer-chart {
+    display: block;
+
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+
+    .history-charts {
+        grid-template-columns: 1fr;
+    }
 
 }

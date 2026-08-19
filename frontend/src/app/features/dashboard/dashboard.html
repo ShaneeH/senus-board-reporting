@@ -1,232 +1,156 @@
 <section class="dashboard">
 
-    <header class="dashboard-header">
+  <!-- Page title and short description -->
+  <header class="dashboard-header">
+    <h1>Financial Dashboard</h1>
+    <p>Select a company and reporting period to view financial performance and key metrics.</p>
+  </header>
 
-        <h1>Financial Dashboard</h1>
-
-        <p>
-            Select a company and reporting period to view financial
-            performance and key metrics.
-        </p>
-
-    </header>
-
-
-    <div class="dashboard-toolbar">
-
-        <div class="toolbar-item">
-
-            <label>Company</label>
-
-            <app-dropdown-select
-                placeholder="Select a company"
-                [options]="companies"
-                [selected]="selectedCompany"
-                (selectionChange)="onCompanySelected($event)"
-            />
-
-        </div>
-
-
-        <div class="toolbar-item">
-
-            <label>Reporting Period</label>
-
-            <app-dropdown-select
-                placeholder="Select a report"
-                [options]="periods"
-                [selected]="selectedPeriod"
-                (selectionChange)="onPeriodSelected($event)"
-            />
-
-        </div>
-
-
-        <div class="toolbar-item">
-
-            <label>Compare With</label>
-
-            <app-dropdown-select
-                placeholder="Select comparison"
-                [options]="comparePeriods"
-                [selected]="selectedComparePeriod"
-                (selectionChange)="onComparePeriodSelected($event)"
-            />
-
-        </div>
-
+  <!-- Toolbar: company, period, and comparison selectors -->
+  <div class="dashboard-toolbar">
+    <div class="toolbar-item">
+      <label>Company</label>
+      <app-dropdown-select
+        placeholder="Select a company"
+        [options]="companies"
+        [selected]="selectedCompany"
+        (selectionChange)="onCompanySelected($event)"
+      />
     </div>
 
+    <div class="toolbar-item">
+      <label>Reporting Period</label>
+      <app-dropdown-select
+        placeholder="Select a report"
+        [options]="periods"
+        [selected]="selectedPeriod"
+        (selectionChange)="onPeriodSelected($event)"
+      />
+    </div>
 
-    @if (financialPeriod) {
+    <div class="toolbar-item">
+      <label>Compare With</label>
+      <app-dropdown-select
+        placeholder="Select comparison"
+        [options]="comparePeriods"
+        [selected]="selectedComparePeriod"
+        (selectionChange)="onComparePeriodSelected($event)"
+      />
+    </div>
+  </div>
 
-        <section class="report-header">
+  <br>
 
-            <div>
+  <!-- Shown once a financial period has been selected -->
+  @if (financialPeriod) {
 
-                <span class="report-label">
-                    Company
-                </span>
+    <!-- Report header: company name, period, and optional comparison -->
+    <section class="report-header">
+      <div>
+        <span class="report-label">Company</span>
+        <h2>{{ financialPeriod.financials.companyName }}</h2>
+      </div>
 
-                <h2>
-                    {{ financialPeriod.financials.companyName }}
-                </h2>
+      <div>
+        <span class="report-label">Reporting Period</span>
+        <h2>{{ financialPeriod.financials.periodLabel }}</h2>
+      </div>
 
-            </div>
+      @if (selectedComparePeriod) {
+        <div>
+          <span class="report-label">Compared With</span>
+          <h2>{{ selectedComparePeriod.label }}</h2>
+        </div>
+      }
+    </section>
 
+    <!-- Main KPI cards for the selected report -->
+    <div class="kpi-grid">
+      <app-kpi-card
+        title="Revenue"
+        format="currency"
+        [value]="financialPeriod.financials.revenue"
+        [change]="financialPeriod.comparison?.revenueGrowth ?? null"
+      />
 
-            <div>
+      <app-kpi-card
+        title="Gross Profit"
+        format="currency"
+        [value]="financialPeriod.financials.grossProfit"
+        [change]="financialPeriod.comparison?.grossProfitGrowth ?? null"
+      />
 
-                <span class="report-label">
-                    Reporting Period
-                </span>
+      <app-kpi-card
+        title="Operating Profit"
+        format="currency"
+        [value]="financialPeriod.financials.operatingProfit"
+        [change]="financialPeriod.comparison?.operatingProfitGrowth ?? null"
+      />
 
-                <h2>
-                    {{ financialPeriod.financials.periodLabel }}
-                </h2>
+      <app-kpi-card
+        title="EBITDA"
+        format="currency"
+        [value]="financialPeriod.financials.ebitda"
+        [change]="financialPeriod.comparison?.ebitdaGrowth ?? null"
+      />
 
-            </div>
+      <app-kpi-card
+        title="Net Profit"
+        format="currency"
+        [value]="financialPeriod.financials.netProfit"
+        [change]="financialPeriod.comparison?.netProfitGrowth ?? null"
+      />
 
+      <app-kpi-card
+        title="Cash"
+        format="currency"
+        [value]="financialPeriod.financials.cash"
+        [change]="financialPeriod.comparison?.cashGrowth ?? null"
+      />
 
-            @if (selectedComparePeriod) {
+      <app-kpi-card
+        title="Debt"
+        format="currency"
+        [value]="financialPeriod.financials.debt"
+        [change]="financialPeriod.comparison?.debtGrowth ?? null"
+      />
 
-                <div>
+      <app-kpi-card
+        title="Customers"
+        format="number"
+        [value]="financialPeriod.financials.customers"
+        [change]="financialPeriod.comparison?.customerGrowth ?? null"
+      />
 
-                    <span class="report-label">
-                        Compared With
-                    </span>
+      <app-kpi-card
+        title="Net Assets"
+        format="currency"
+        [value]="financialPeriod.financials.netAssets"
+        [change]="financialPeriod.comparison?.netAssetGrowth ?? null"
+      />
+    </div>
+  }
 
-                    <h2>
-                        {{ selectedComparePeriod.label }}
-                    </h2>
+  <!-- Historical charts – only shown when history data is available -->
+  @if (history.length > 0) {
+    <section class="history-section">
+      <div class="history-heading">
+        <h2>Performance Across All Reports</h2>
+      </div>
 
-                </div>
-
-            }
-
-        </section>
-
-
-        <div class="kpi-grid">
-
-            <app-kpi-card
-                title="Revenue"
-                format="currency"
-                [value]="financialPeriod.financials.revenue"
-                [change]="financialPeriod.comparison?.revenueGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Gross Profit"
-                format="currency"
-                [value]="financialPeriod.financials.grossProfit"
-                [change]="financialPeriod.comparison?.grossProfitGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Operating Profit"
-                format="currency"
-                [value]="financialPeriod.financials.operatingProfit"
-                [change]="financialPeriod.comparison?.operatingProfitGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="EBITDA"
-                format="currency"
-                [value]="financialPeriod.financials.ebitda"
-                [change]="financialPeriod.comparison?.ebitdaGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Net Profit"
-                format="currency"
-                [value]="financialPeriod.financials.netProfit"
-                [change]="financialPeriod.comparison?.netProfitGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Cash"
-                format="currency"
-                [value]="financialPeriod.financials.cash"
-                [change]="financialPeriod.comparison?.cashGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Debt"
-                format="currency"
-                [value]="financialPeriod.financials.debt"
-                [change]="financialPeriod.comparison?.debtGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Customers"
-                format="number"
-                [value]="financialPeriod.financials.customers"
-                [change]="financialPeriod.comparison?.customerGrowth ?? null"
-            />
-
-            <app-kpi-card
-                title="Net Assets"
-                format="currency"
-                [value]="financialPeriod.financials.netAssets"
-                [change]="financialPeriod.comparison?.netAssetGrowth ?? null"
-            />
-
+      <!-- Charts use all available reporting periods -->
+      <div class="history-charts">
+        <div class="history-chart-card">
+          <h4>Revenue</h4>
+          <app-revenue-chart [history]="history" />
         </div>
 
-
-        <div class="profit-chart-row">
-
-            <div class="profit-chart-wrapper">
-
-                <app-profit-chart
-                    [revenue]="financialPeriod.financials.revenue"
-                    [grossProfit]="financialPeriod.financials.grossProfit"
-                />
-
-            </div>
-
+        <div class="history-chart-card">
+          <h4>Customer Growth</h4>
+          <app-customer-chart [history]="history" />
         </div>
-
-    }
-
-
-    @if (history.length > 0) {
-
-        <section class="history-section">
-
-            <div class="history-heading">
-
-                <span>Historical Performance</span>
-
-                <h2>Company Trends</h2>
-
-            </div>
-
-
-            <div class="history-charts">
-
-                <div class="history-chart">
-
-                    <app-revenue-chart
-                        [history]="history"
-                    />
-
-                </div>
-
-
-                <div class="history-chart">
-
-                    <app-customer-chart
-                        [history]="history"
-                    />
-
-                </div>
-
-            </div>
-
-        </section>
-
-    }
+      </div>
+    </section>
+  }
 
 </section>

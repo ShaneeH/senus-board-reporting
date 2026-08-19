@@ -1,135 +1,90 @@
 import { Component, Input } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
+import { Chart, ChartConfiguration, ChartOptions, registerables } from 'chart.js';
+import { HistoryPeriod } from '../../../core/models/history-period.model';
 
-import {
-    Chart,
-    ChartConfiguration,
-    ChartOptions,
-    registerables
-} from 'chart.js';
-
-import {
-    HistoryPeriod
-} from '../../../core/models/history-period.model';
-
+// Register all Chart.js components so bar charts work out of the box.
 Chart.register(...registerables);
 
 @Component({
-    selector: 'app-customer-chart',
-    standalone: true,
-    imports: [
-        BaseChartDirective
-    ],
-    templateUrl: './customer-chart.html',
-    styleUrl: './customer-chart.css'
+  selector: 'app-customer-chart',
+  standalone: true,
+  imports: [BaseChartDirective],
+  templateUrl: './customer-chart.html',
+  styleUrl: './customer-chart.css'
 })
 export class CustomerChartComponent {
 
-    @Input()
-    set history(history: HistoryPeriod[]) {
+  // Rebuild the chart whenever new history data is passed in.
+  @Input()
+  set history(history: HistoryPeriod[]) {
+    this.chartData = {
+      // X-axis labels (e.g. "Jan 2024", "Feb 2024", …)
+      labels: history.map(period => period.periodLabel),
 
-        this.chartData = {
-
-            labels: history.map(
-                period => period.periodLabel
-            ),
-
-            datasets: [
-                {
-                    label: 'Customers',
-
-                    data: history.map(
-                        period =>
-                            Number(period.customers ?? 0)
-                    ),
-
-                    borderWidth: 1,
-
-                    borderRadius: 6,
-
-                    borderSkipped: false,
-
-                    maxBarThickness: 70
-                }
-            ]
-
-        };
-
-    }
-
-
-    chartData: ChartConfiguration<'bar'>['data'] = {
-        labels: [],
-        datasets: []
+      datasets: [{
+        label: 'Customers',
+        // Convert each period's customer count to a number (fallback to 0).
+        data: history.map(period => Number(period.customers ?? 0)),
+        borderWidth: 1,
+        borderRadius: 6,          // Rounded bar corners
+        borderSkipped: false,     
+        maxBarThickness: 70       
+      }]
     };
+  }
 
+  // Initial empty chart data (populated by the history setter above).
+  chartData: ChartConfiguration<'bar'>['data'] = {
+    labels: [],
+    datasets: []
+  };
 
-    chartOptions: ChartOptions<'bar'> = {
+  // Chart.js configuration for a clean, responsive bar chart.
+  chartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
 
-        responsive: true,
+    plugins: {
+      // Hide the default legend – we only have one series.
+      legend: {
+        display: false
+      },
 
-        maintainAspectRatio: false,
+      tooltip: {
+        callbacks: {
+          // Format the tooltip value as a readable customer count.
+          label: context => {
+            const value = context.parsed.y ?? 0;
+            return `${value.toLocaleString()} customers`;
+          }
+        }
+      }
+    },
 
-        plugins: {
+    scales: {
+      x: {
+        ticks: {
+          color: '#a1a1aa'        // Light gray tick labels
+        },
+        grid: {
+          display: false          // No vertical grid lines
+        }
+      },
 
-            legend: {
-                display: false
-            },
+      y: {
+        beginAtZero: true,        // Always start the Y-axis at 0
 
-            tooltip: {
-
-                callbacks: {
-
-                    label: context => {
-
-                        const value =
-                            context.parsed.y ?? 0;
-
-                        return `${value.toLocaleString()} customers`;
-
-                    }
-
-                }
-
-            }
-
+        ticks: {
+          color: '#a1a1aa',
+          // Format large numbers with thousand separators.
+          callback: value => Number(value).toLocaleString()
         },
 
-        scales: {
-
-            x: {
-
-                ticks: {
-                    color: '#a1a1aa'
-                },
-
-                grid: {
-                    display: false
-                }
-
-            },
-
-            y: {
-
-                beginAtZero: true,
-
-                ticks: {
-
-                    color: '#a1a1aa',
-
-                    callback: value =>
-                        Number(value).toLocaleString()
-
-                },
-
-                grid: {
-                    color: '#27272a'
-                }
-
-            }
-
+        grid: {
+          color: '#27272a'        // Subtle dark horizontal grid lines
         }
-
-    };
-
+      }
+    }
+  };
 }
