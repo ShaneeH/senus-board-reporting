@@ -1,4 +1,5 @@
 // ── Tokens (reuse your globals if already defined) ──────────────
+@use 'sass:color';
 $bg:        #08080A;
 $surface:   #17171A;
 $surface-2: #1F1F23;
@@ -12,6 +13,7 @@ $danger:    #00a6ff;
 $radius:    12px;
 $font:      'Inter', -apple-system, sans-serif;
 $mono:      'JetBrains Mono', ui-monospace, monospace;
+
 
 .add-document {
   max-width: 880px;
@@ -72,8 +74,7 @@ $mono:      'JetBrains Mono', ui-monospace, monospace;
 
   &:hover {
     border-color: rgba($accent, 0.5);
-    background: mix($bg, $accent-dim, 96%);
-
+    background: color.mix($bg, $accent-dim, 96%);
     .upload-icon { color: $accent; transform: translateY(-3px); }
   }
 
