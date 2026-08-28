@@ -110,6 +110,21 @@ async function getOrCreateCompany(
     return newCompany.rows[0].company_id;
 }
 
+export async function getDocuments() {
+  const result = await db.query(`
+    SELECT
+      id,
+      company_id,
+      period,
+      period_label,
+      created_at
+    FROM financial_documents
+    ORDER BY created_at DESC
+  `);
+
+  return result.rows;
+}
+
 async function insertDocument(
     client: PoolClient,
     companyId: number,
@@ -269,4 +284,22 @@ async function linkDocumentToPeriod(
         `,
         [documentId, periodId]
     );
+}
+
+export async function deleteReport(
+    client: PoolClient,
+    companyId: number,
+    period: string
+): Promise<boolean> {
+
+    const result = await client.query(
+        `
+      DELETE FROM reports
+      WHERE company_id = $1
+      AND period = $2
+    `,
+        [companyId, period]
+    );
+
+    return result.rowCount === 1;
 }

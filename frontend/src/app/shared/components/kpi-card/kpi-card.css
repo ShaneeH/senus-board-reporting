@@ -11,12 +11,13 @@
     margin: 0;
     font-family: var(--font-family);
     font-variant-numeric: tabular-nums;
-    font-size: 2.4rem;
-    font-weight: 600;
+    font-size: 1.4rem;        /* was 2.0rem */
+    font-weight: 600;         /* was 500 — a touch more weight compensates for the smaller size */
     color: var(--primary);
-    line-height: 1;
+    line-height: 1.15;
     letter-spacing: -0.01em;
 }
+
 
 .kpi-change {
     display: inline-flex;

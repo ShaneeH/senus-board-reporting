@@ -3,21 +3,24 @@ import multer from "multer";
 
 import { db } from "../database/db";
 import { analysePDF, uploadPDF } from "../services/openai.service";
-import { DuplicateDocumentError, saveFinancialDocument } from "../services/documents.service";
+import {
+    DuplicateDocumentError,
+    saveFinancialDocument
+} from "../services/documents.service";
 import { uploadLimiter } from "../middleware/rate-limit";
 import { generateDocumentHash } from "../utils/document-hash";
 import { analysePrompt } from "../utils/prompts";
 import { parseAndValidateReport } from "../utils/report-validator";
+import { getDocuments } from "../services/documents.service";
 
 const router = Router();
 
-// PDFs are only held in memory while being processed.
 const upload = multer({
     storage: multer.memoryStorage()
 });
 
 
-// Checks that the backend can connect to PostgreSQL.
+
 router.get("/test-db", async (_req, res) => {
     try {
         const result = await db.query("SELECT NOW();");
@@ -38,13 +41,24 @@ router.get("/test-db", async (_req, res) => {
     }
 });
 
+router.get('/', async (_req, res) => {
+  try {
+    const documents = await getDocuments();
 
-// Uploads, analyses and saves a financial report.
+    return res.json(documents);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: 'Failed to retrieve documents.'
+    });
+  }
+});
+
 router.post(
     "/add",
     uploadLimiter,
     upload.single("file"),
-
     async (req, res) => {
         try {
             if (!req.file) {
@@ -55,23 +69,11 @@ router.post(
             }
 
             const pdf = req.file.buffer;
-
-            // Used to identify the exact PDF if it is uploaded again.
             const documentHash = generateDocumentHash(pdf);
-
-            // Send the PDF to OpenAI.
             const pdfId = await uploadPDF(pdf);
-
-            // Extract the financial data from the document.
-            const aiResponse = await analysePDF(
-                pdfId,
-                analysePrompt
-            );
-
-            // Make sure OpenAI returned data in the expected format.
+            const aiResponse = await analysePDF(pdfId, analysePrompt);
             const report = parseAndValidateReport(aiResponse);
 
-            // Save the document and its financial periods.
             await saveFinancialDocument(
                 documentHash,
                 pdfId,
@@ -85,7 +87,6 @@ router.post(
                 documentHash,
                 report
             });
-
         } catch (error) {
             if (error instanceof DuplicateDocumentError) {
                 return res.status(409).json({
@@ -106,12 +107,52 @@ router.post(
     }
 );
 
+router.delete("/companies/:companyId/reports/:period", async (req, res) => {
+    try {
+        const companyId = Number(req.params.companyId);
+        const period = req.params.period;
 
-// Keeps error handling a bit cleaner throughout the route.
+        if (!companyId || !period) {
+            return res.status(400).json({
+                success: false,
+                error: "Invalid company or period"
+            });
+        }
+
+        const result = await db.query(
+            `
+            DELETE FROM financial_periods
+            WHERE company_id = $1
+            AND period = $2
+            `,
+            [companyId, period]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                success: false,
+                error: "Report not found"
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: `${period} deleted successfully`
+        });
+    } catch (error) {
+        const message = getErrorMessage(error);
+
+        console.error(message);
+
+        return res.status(500).json({
+            success: false,
+            error: message
+        });
+    }
+});
+
 function getErrorMessage(error: unknown): string {
-    return error instanceof Error
-        ? error.message
-        : "Unknown error";
+    return error instanceof Error ? error.message : "Unknown error";
 }
 
 export default router;

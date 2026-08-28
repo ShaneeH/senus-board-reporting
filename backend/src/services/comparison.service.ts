@@ -12,10 +12,7 @@ export interface FinancialComparison {
     netAssetGrowth: number | null;
 }
 
-export function compareFinancialPeriods(
-    current: FinancialPeriod,
-    previous: FinancialPeriod
-): FinancialComparison {
+export function compareFinancialPeriods( current: FinancialPeriod, previous: FinancialPeriod): FinancialComparison {
     // Compare the main financial figures between the two periods
     return {
         revenueGrowth: calculateGrowth(current.revenue, previous.revenue),

@@ -5,7 +5,7 @@ $surface:   #17171A;
 $surface-2: #1F1F23;
 $border:    #2A2A2F;
 $accent:    #00a6ff;
-$accent-dim: rgba(255, 106, 0, 0.14);
+$accent-dim: rgba(129, 128, 127, 0.14);
 $text:      #EDEDED;
 $text-dim:  #8A8A90;
 $text-faint: #55555C;
@@ -56,7 +56,7 @@ $mono:      'JetBrains Mono', ui-monospace, monospace;
 // ── Upload card ───────────────────────────────────────────────
 .upload-card {
   background: $surface;
-  border: 1px solid $border;
+  border: 3px solid $border;
   border-radius: $radius;
   padding: 2.25rem;
 }
@@ -64,7 +64,7 @@ $mono:      'JetBrains Mono', ui-monospace, monospace;
 .upload-area {
   position: relative;
   overflow: hidden;
-  border: 1.5px dashed $border;
+  border: 2.5px dashed $border;
   border-radius: $radius - 2px;
   padding: 4.5rem 2.5rem;
   text-align: center;
@@ -109,7 +109,7 @@ $mono:      'JetBrains Mono', ui-monospace, monospace;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     font-family: $mono;
     color: $text-faint;
     letter-spacing: 0.02em;
@@ -173,7 +173,7 @@ $mono:      'JetBrains Mono', ui-monospace, monospace;
   .change-file {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 0.85rem;
+    font-size: 1.0rem;
     color: $accent;
   }
 }

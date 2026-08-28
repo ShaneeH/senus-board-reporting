@@ -35,9 +35,12 @@ export class Dashboard implements OnInit {
   financialPeriod: FinancialPeriod | null = null;
   companyName = '';
 
+  emptyData: boolean = true;
+
   ngOnInit(): void {
     // Load available companies when the dashboard first opens.
     this.loadCompanies();
+   
   }
 
   onCompanySelected(company: DropdownOption<number>): void {
@@ -91,19 +94,19 @@ export class Dashboard implements OnInit {
         error: error => console.error('Failed to compare financial periods.', error)
       });
   }
+private loadCompanies(): void {
+  this.companyService.getCompanies().subscribe({
+    next: companies => {
+      this.companies = companies.map(company => ({
+        label: company.companyName,
+        value: company.companyId
+      }));
 
-  private loadCompanies(): void {
-    this.companyService.getCompanies().subscribe({
-      next: companies => {
-        // Convert backend companies into dropdown options.
-        this.companies = companies.map(company => ({
-          label: company.companyName,
-          value: company.companyId
-        }));
-      },
-      error: error => console.error('Failed to load companies.', error)
-    });
-  }
+      this.emptyData = companies.length === 0;
+    },
+    error: error => console.error('Failed to load companies.', error)
+  });
+}
 
   private loadPeriods(companyId: number): void {
     this.companyService.getPeriods(companyId).subscribe({

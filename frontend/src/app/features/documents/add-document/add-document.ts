@@ -1,8 +1,8 @@
-import { Component, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject } from '@angular/core';
 
-import { CompanyService } from '../../core/services/company.service';
-import { UploadReportResponse } from '../../core/models/upload-report.model';
+import { UploadReportResponse } from '../../../core/models/upload-report.model';
+import { CompanyService } from '../../../core/services/company.service';
 
 @Component({
   selector: 'app-add-document',
@@ -20,14 +20,12 @@ export class AddDocument {
   successMessage: string | null = null;
   errorMessage: string | null = null;
 
-  // Reads the file selected from the upload input.
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
     if (!file) return;
 
-    // Only allow PDF documents through the frontend.
     if (file.type !== 'application/pdf') {
       this.errorMessage = 'Please select a PDF document.';
       this.selectedFile = null;
@@ -35,8 +33,6 @@ export class AddDocument {
     }
 
     this.selectedFile = file;
-
-    // Clear any old messages when a new file is selected.
     this.errorMessage = null;
     this.successMessage = null;
   }
@@ -47,7 +43,6 @@ export class AddDocument {
       return;
     }
 
-    // Lock the upload button and clear any previous result.
     this.isUploading = true;
     this.errorMessage = null;
     this.successMessage = null;
@@ -64,7 +59,6 @@ export class AddDocument {
       error: (error: HttpErrorResponse) => {
         console.error('Failed to upload document:', error);
 
-        // Use the backend message when one is available.
         this.errorMessage =
           error.error?.error ??
           'Something went wrong while analysing the document.';

@@ -3,8 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-
-    // Loads the main application shell when the app starts.
+    // AppShell is the only thing loaded eagerly
     loadComponent: () =>
       import('./layout/app-shell/app-shell').then(m => m.AppShell),
 
@@ -30,17 +29,18 @@ export const routes: Routes = [
       },
 
       {
-        path: 'add-document',
+        path: 'documents',
         loadComponent: () =>
-          import('./features/add-document/add-document').then(m => m.AddDocument),
-        title: 'Senus | Add Report'
+          import('./features/documents/documents').then(m => m.Documents),
+        title: 'Senus | Documents'
+      },
+
+      {
+        path: '**',
+        loadComponent: () =>
+          import('./layout/not-found/not-found').then(m => m.NotFound),
+        title: 'Senus | Page Not Found'
       }
     ]
-  },
-
-  // Any unknown route goes back to the dashboard.
-  {
-    path: '**',
-    redirectTo: 'dashboard'
   }
 ];
