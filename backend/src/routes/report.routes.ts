@@ -107,6 +107,7 @@ router.post(
     }
 );
 
+// This needs to be worked on more
 router.delete("/companies/:companyId/reports/:period", async (req, res) => {
     try {
         const companyId = Number(req.params.companyId);

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import "dotenv/config";
 
 // Load environment variables before the rest of the backend starts.
 dotenv.config();

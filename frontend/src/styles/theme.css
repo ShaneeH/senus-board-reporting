@@ -146,12 +146,6 @@ button:hover {
 
 }
 
-.kpi-value {
-    font-family: var(--font-mono);
-    font-size: 2.2rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
 
 .hero {
     font-family: var(--font-display-face);

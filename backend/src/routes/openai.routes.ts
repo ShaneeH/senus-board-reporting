@@ -5,7 +5,7 @@ const router = Router();
 
 router.get("/hello", async (req, res) => {
     try {
-        const response = await basicPrompt("Hello sir");
+        const response = await basicPrompt("Can you just respond OPEN_AI Route working!");
 
         res.json({
             success: true,

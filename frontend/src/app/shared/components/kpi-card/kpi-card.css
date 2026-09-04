@@ -1,37 +1,21 @@
-.kpi-title {
-    font-family: var(--font-family);
-    font-size: var(--font-small);
-    color: var(--muted);
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+:host {
+  display: block;
+  position: relative;
+  background: #191a1b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  padding: 1.25rem 1.4rem;
+  overflow: hidden;
+  transition: border-color var(--transition);
+  font-variant-numeric: tabular-nums;
 }
 
-.kpi-value {
-    margin: 0;
-    font-family: var(--font-family);
-    font-variant-numeric: tabular-nums;
-    font-size: 1.4rem;        /* was 2.0rem */
-    font-weight: 600;         /* was 500 — a touch more weight compensates for the smaller size */
-    color: var(--primary);
-    line-height: 1.15;
-    letter-spacing: -0.01em;
+@media (hover: hover) {
+  :host:hover {
+    border-color: var(--muted);
+  }
 }
 
-
-.kpi-change {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-family: var(--font-family);
-    font-size: var(--font-small);
-    font-weight: 500;
-}
-
-.positive { color: var(--success); }
-.negative { color: var(--danger); }
-
-.kpi-empty {
-    font-family: var(--font-family);
-    color: var(--muted);
+:host:focus-within {
+  border-color: var(--accent);
 }
