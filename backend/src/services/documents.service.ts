@@ -1,6 +1,6 @@
 import { PoolClient } from "pg";
 
-import { db } from "../database/db";
+import { pool } from "../database/db";
 import {
     FinancialPeriod,
     FinancialReport
@@ -64,7 +64,7 @@ const DOCUMENT_SELECT = `
         d.report_date AS "reportDate",
         d.currency,
         d.source,
-        c.created_at AS "uploadedAt",
+        d.created_at AS "uploadedAt",
         COALESCE(
             JSONB_AGG(
                 JSONB_BUILD_OBJECT(
@@ -102,13 +102,13 @@ const DOCUMENT_GROUP = `
         d.report_date,
         d.currency,
         d.source,
-        c.created_at
+        d.created_at
 `;
 
 export async function documentExistsByHash(
     documentHash: string
 ): Promise<boolean> {
-    const result = await db.query(
+    const result = await pool.query(
         "SELECT 1 FROM documents WHERE document_hash = $1 LIMIT 1",
         [documentHash]
     );
@@ -121,7 +121,7 @@ export async function saveFinancialDocument(
     openaiFileId: string,
     report: FinancialReport
 ): Promise<number> {
-    const client = await db.connect();
+    const client = await pool.connect();
 
     try {
         await client.query("BEGIN");
@@ -192,7 +192,7 @@ export async function getDocuments(
     values.push(offset);
     const offsetPosition = values.length;
 
-    const result = await db.query<FinancialDocumentRecord>(
+    const result = await pool.query<FinancialDocumentRecord>(
         `
         ${DOCUMENT_SELECT}
         ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
@@ -210,7 +210,7 @@ export async function getDocuments(
 export async function getDocumentById(
     documentId: number
 ): Promise<FinancialDocumentRecord | null> {
-    const result = await db.query<FinancialDocumentRecord>(
+    const result = await pool.query<FinancialDocumentRecord>(
         `
         ${DOCUMENT_SELECT}
         WHERE d.document_id = $1
@@ -228,7 +228,7 @@ export async function getDocumentStats(): Promise<{
     companies: number;
     latestUpload: string | null;
 }> {
-    const result = await db.query<{
+    const result = await pool.query<{
         documents: string;
         companies: string;
         latestUpload: string | null;
@@ -236,7 +236,7 @@ export async function getDocumentStats(): Promise<{
         SELECT
             COUNT(*)::TEXT AS documents,
             COUNT(DISTINCT company_id)::TEXT AS companies,
-            MAX(c.created_at) AS "latestUpload"
+            MAX(d.created_at) AS "latestUpload"
         FROM documents d
         JOIN companies c ON c.company_id = d.company_id;
     `);
@@ -251,7 +251,7 @@ export async function getDocumentStats(): Promise<{
 export async function deleteFinancialDocument(
     documentId: number
 ): Promise<DeletedDocument | null> {
-    const client = await db.connect();
+    const client = await pool.connect();
 
     try {
         await client.query("BEGIN");
