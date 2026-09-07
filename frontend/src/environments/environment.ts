@@ -1,5 +1,4 @@
 export const environment = {
-
-    apiUrl: 'https://senus-board-reporting.vercel.app'
-
+  production: true,
+  apiUrl: 'https://senus-board-reporting.vercel.app/api'
 };
