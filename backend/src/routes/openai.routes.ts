@@ -1,25 +1,28 @@
 import { Router } from "express";
-import { basicPrompt } from "../services/openai.service";
+import { getOpenAIStatus } from "../services/openai.service";
 
 const router = Router();
 
-router.get("/hello", async (req, res) => {
-    try {
-        const response = await basicPrompt("Can you just respond OPEN_AI Route working!");
+router.get("/status", (_req, res) => {
+    const status = getOpenAIStatus();
 
-        res.json({
-            success: true,
-            response
-        });
-    } catch (error) {
-        // Log the actual error for debugging
-        console.error(error);
+    res.status(status.configured ? 200 : 503).json({
+        success: status.configured,
+        ...status
+    });
+});
 
-        res.status(500).json({
-            success: false,
-            error: "Failed to contact OpenAI"
-        });
-    }
+// Kept as a backwards-compatible alias. It no longer spends tokens on a test call.
+router.get("/hello", (_req, res) => {
+    const status = getOpenAIStatus();
+
+    res.status(status.configured ? 200 : 503).json({
+        success: status.configured,
+        message: status.configured
+            ? "OpenAI is configured."
+            : "OpenAI is not configured.",
+        ...status
+    });
 });
 
 export default router;

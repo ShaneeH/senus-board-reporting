@@ -6,6 +6,10 @@ import { environment } from '../../../environments/environment';
 
 import { Company } from '../models/company.model';
 import { CompanyPeriod } from '../models/company-period.model';
+import {
+  DeleteDocumentResponse,
+  FinancialDocument
+} from '../models/document.model';
 import { FinancialPeriod } from '../models/financial-period.model';
 import { HistoryPeriod } from '../models/history-period.model';
 import { UploadReportResponse } from '../models/upload-report.model';
@@ -57,6 +61,20 @@ export class CompanyService {
     return this.http.post<UploadReportResponse>(
       `${environment.apiUrl}/reports/add`,
       formData
+    );
+  }
+
+  // Get every uploaded report and its linked financial periods.
+  getDocuments(): Observable<FinancialDocument[]> {
+    return this.http.get<FinancialDocument[]>(
+      `${environment.apiUrl}/reports`
+    );
+  }
+
+  // Delete one uploaded report by its database ID.
+  deleteDocument(documentId: number): Observable<DeleteDocumentResponse> {
+    return this.http.delete<DeleteDocumentResponse>(
+      `${environment.apiUrl}/reports/${documentId}`
     );
   }
 }

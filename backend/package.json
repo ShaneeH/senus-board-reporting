@@ -1,12 +1,15 @@
 {
   "name": "backend",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Secure financial document processing and reporting API",
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "db:migrate": "npm run build && node dist/database/migrate.js",
+    "test": "npm run build && node --test dist/*.test.js dist/**/*.test.js",
+    "check": "npm test"
   },
   "keywords": [],
   "author": "",

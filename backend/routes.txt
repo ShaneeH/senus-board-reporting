@@ -1,0 +1,106 @@
+BACKEND API ROUTES
+
+Base URL
+http://localhost:3000
+
+HEALTH
+
+GET /api/health
+Checks whether the API server is running.
+
+GET /api/health/ready
+Checks whether the API and PostgreSQL database are ready.
+
+OPENAI
+
+GET /api/openai/status
+Shows whether the OpenAI service is configured.
+
+GET /api/openai/hello
+Older alias for the OpenAI status check. This does not use any OpenAI tokens.
+
+COMPANIES
+
+GET /api/companies
+Returns every company stored in the database.
+
+GET /api/companies/:companyId/periods
+Returns all reporting periods belonging to a company.
+Example: GET /api/companies/1/periods
+
+GET /api/companies/:companyId/periods/:period
+Returns financial data for one company and reporting period.
+Example: GET /api/companies/1/periods/FY2025
+
+Optional query parameter:
+compareTo   Compares the selected period with another period.
+Example: GET /api/companies/1/periods/FY2025?compareTo=FY2024
+
+GET /api/companies/:companyId/history
+Returns historical financial data for charts and trends.
+Example: GET /api/companies/1/history
+
+REPORTS
+
+GET /api/reports
+Returns uploaded reports.
+
+Optional query parameters:
+companyId   Filters reports by company ID.
+limit       Limits the number of results.
+offset      Skips a number of results for pagination.
+
+Example: GET /api/reports?companyId=1&limit=20&offset=0
+
+GET /api/reports/stats
+Returns document statistics.
+
+GET /api/reports/:documentId
+Returns one report by its document ID.
+Example: GET /api/reports/12
+
+POST /api/reports/add
+Uploads and analyses one PDF financial report.
+Content Type: multipart/form-data
+Form field name: file
+Accepted file type: PDF
+
+Example with curl:
+curl -X POST http://localhost:3000/api/reports/add -F "file=@report.pdf"
+
+DELETE /api/reports/:documentId
+Deletes one individual report.
+Example: DELETE /api/reports/12
+
+EXPORTS
+
+GET /api/reports/:documentId/export.json
+Downloads one report as a JSON file.
+Example: GET /api/reports/12/export.json
+
+GET /api/reports/:documentId/export.pdf
+Downloads one report as a PDF summary.
+Example: GET /api/reports/12/export.pdf
+
+GET /api/reports/:documentId/export.csv
+Downloads one report as a CSV file.
+Example: GET /api/reports/12/export.csv
+
+COMMON STATUS CODES
+
+200   Request completed successfully.
+201   Report uploaded and created successfully.
+400   Invalid request, ID, parameter, or file.
+404   Company, period, report, or route not found.
+409   The uploaded document already exists.
+413   Uploaded file or request body is too large.
+422   The PDF could not be converted into valid financial data.
+429   Too many requests. Wait before trying again.
+500   Internal server or database error.
+503   Database or OpenAI service is not ready or configured.
+
+NOTES
+
+Replace :companyId and :documentId with real numeric IDs.
+The default port is 3000 unless PORT is changed in the backend .env file.
+Error responses include a requestId that can be matched with the backend logs.

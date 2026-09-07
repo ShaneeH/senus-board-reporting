@@ -1,32 +1,46 @@
-import dotenv from "dotenv";
 import "dotenv/config";
 
-// Load environment variables before the rest of the backend starts.
-dotenv.config();
-
 import app from "./app";
+import { db } from "./database/db";
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+let shuttingDown = false;
 
-// Start the Express server once all of the application setup has loaded.
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+    console.log("\n  ◆ SENUS API");
+    console.log(`  Local:   http://localhost:${PORT}`);
+    console.log(`  Health:  http://localhost:${PORT}/api/health`);
+    console.log(`  Mode:    ${process.env.NODE_ENV ?? "development"}\n`);
 });
 
+function shutdown(signal: string): void {
+    if (shuttingDown) return;
+    shuttingDown = true;
 
-// server.ts is the entry point for the backend.
-// Most of the application setup lives in app.ts, including middleware,
-// routes, rate limiting and other Express configuration.
-//
-// The general backend flow is:
-//
-// Client request
-//      ↓
-// Express app
-//      ↓
-// Routes
-//      ↓
-// Controllers / services
-//      ↓
-// Database or external services such as OpenAI
-// Developed by Shane Hahesy
+    console.log(`\n[server] ${signal} received, closing connections...`);
+
+    const forceTimer = setTimeout(() => {
+        console.error("[server] graceful shutdown timed out");
+        process.exit(1);
+    }, 10_000);
+    forceTimer.unref();
+
+    server.close(async error => {
+        try {
+            await db.end();
+        } catch (databaseError) {
+            console.error("[server] database shutdown failed", databaseError);
+            process.exitCode = 1;
+        }
+
+        clearTimeout(forceTimer);
+
+        if (error) {
+            console.error("[server] shutdown failed", error);
+            process.exitCode = 1;
+        }
+    });
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

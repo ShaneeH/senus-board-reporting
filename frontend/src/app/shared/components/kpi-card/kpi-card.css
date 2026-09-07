@@ -1,21 +1,42 @@
 :host {
   display: block;
   position: relative;
-  background: #191a1b;
+
+  background: #19181b;
   border: 1px solid var(--border);
-  border-radius: var(--radius-medium);
-  padding: 1.25rem 1.4rem;
-  overflow: hidden;
-  transition: border-color var(--transition);
+  border-radius: 6px;
+
+  padding: 0.7rem 0.9rem;
+  min-height: 105px;
+  height: auto;
+
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
 }
 
 @media (hover: hover) {
   :host:hover {
-    border-color: var(--muted);
+    background: #201f23;
+    border-left-color: var(--accent);
   }
 }
 
 :host:focus-within {
-  border-color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.kpi-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.55rem;
+  font-weight: 600;
+}
+
+.kpi-change.positive {
+  color: #22c55e;
+}
+
+.kpi-change.negative {
+  color: #ef4444;
 }

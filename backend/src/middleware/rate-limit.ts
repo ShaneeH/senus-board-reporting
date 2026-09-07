@@ -7,7 +7,7 @@ export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
 
     // Maximum of 100 requests within the 15 minute window.
-    limit: 100,
+    limit: 150,
 
     // Sends the modern RateLimit headers back to the client.
     standardHeaders: true,
@@ -15,7 +15,7 @@ export const apiLimiter = rateLimit({
 
     message: {
         success: false,
-        error: "Too many requests."
+        error: "Too many requests. Please try again later."
     }
 });
 
@@ -24,8 +24,8 @@ export const uploadLimiter = rateLimit({
     // Upload limits are also measured across a 15 minute window.
     windowMs: 15 * 60 * 1000,
 
-    // Allows up to 10 PDF uploads per IP during that period.
-    limit: 10,
+    // Document analysis is expensive, so it receives the smallest allowance.
+    limit: 5,
 
     standardHeaders: true,
     legacyHeaders: false,
@@ -33,5 +33,16 @@ export const uploadLimiter = rateLimit({
     message: {
         success: false,
         error: "Too many PDF uploads. Please try again later."
+    }
+});
+
+export const exportLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: "Too many export requests. Please try again later."
     }
 });

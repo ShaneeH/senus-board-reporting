@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About the Developer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,480;9..144,560&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="page">
+<section class="about-section">
+
+  <h2>About the Developer</h2>
+
+  <div class="intro">
+    <div class="avatar">SH</div>
+    <div class="intro-body">
+      <p>
+        Hi, I'm <strong>Shane Hahesy</strong> a Dublin-based software
+        engineer with a CS degree from National College of Ireland and
+        backend experience from a software developer internship,
+        working across .NET/C#, Node.js and REST APIs in an agile team.
+        I like building things that solve a real problem end to end,
+        particularly backend systems, APIs and developer tooling.
+      </p>
+      <p>
+      </p>
+    </div>
+  </div>
+
+  <div class="why-block">
+<h3>What is ReportHub?</h3>
+
+<p>
+    Financial reporting software is often built either for accountants
+    or for developers. ReportHub is designed for the people in between:
+    board members, investors and decision makers who need the answers,
+    not hundreds of pages of financial statements.
+</p>
+
+<p>
+    Simply upload a company's financial report and ReportHub will:
+</p>
+
+<ul>
+
+    <li>Identify the company and reporting period automatically.</li>
+
+    <li>Extract key financial information using AI.</li>
+
+    <li>Normalise the data into a structured PostgreSQL database.</li>
+
+    <li>Prevent duplicate document uploads using SHA256 fingerprinting.</li>
+
+    <li>Enrich existing reporting periods with newly discovered information.</li>
+
+    <li>Calculate financial KPIs including margins, ratios and other board level metrics.</li>
+
+    <li>Compare reporting periods to highlight trends and year over year performance.</li>
+
+    <li>Present everything through a clean, interactive dashboard.</li>
+
+</ul>
+
+<p>
+    The goal is simple: reduce the time spent searching through reports
+    and increase the time spent understanding the business.
+</p>
+  </div>
+
+  <div class="diagram-grid">
+
+    <div class="diagram-block">
+      <h3>Report Flow</h3>
+      <div class="flow">
+        <div class="flow-step">Financial report (PDF)<span class="note">Uploaded and fingerprinted</span></div>
+        <div class="flow-step">OpenAI document analysis<span class="note">Reads and interprets the content</span></div>
+        <div class="flow-step">Structured JSON output<span class="note">Normalised, consistent shape</span></div>
+        <div class="flow-step">Express REST API (Node.js)<span class="note">Validates and persists the data</span></div>
+        <div class="flow-step">PostgreSQL database<span class="note">Enriched across reports over time</span></div>
+        <div class="flow-step">Financial calculations<span class="note">KPIs computed on read</span></div>
+        <div class="flow-step">Angular dashboard UI<span class="note">Renders it for the board</span></div>
+        <div class="flow-step">Interactive board report</div>
+      </div>
+    </div>
+
+    <div class="diagram-block">
+      <h3>Stack</h3>
+      <div class="flow">
+        <div class="flow-step">Angular<span class="note">Frontend dashboard</span></div>
+        <div class="flow-step">Express<span class="note">REST API layer</span></div>
+        <div class="flow-step">PostgreSQL<span class="note">Persistence</span></div>
+        <div class="flow-step">OpenAI API<span class="note">Document analysis</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="contact-block">
+    <p>Interested in the project, spotted a bug, or just want to talk through how it's built? I'd like to hear from you.</p>
+    <div class="contact-links">
+      <a href="mailto:s.hahesy@outlook.com" class="primary">Email — s.hahesy@outlook.com</a>
+      <a href="https://github.com/your-username">GitHub</a>
+      <a href="https://linkedin.com/in/your-username">LinkedIn</a>
+    </div>
+  </div>
+
+</section>
+</div>
+
+</body>
+</html>

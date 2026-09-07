@@ -1,159 +1,383 @@
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import multer from "multer";
 
-import { db } from "../database/db";
-import { analysePDF, uploadPDF } from "../services/openai.service";
 import {
+    deleteFinancialDocument,
+    documentExistsByHash,
     DuplicateDocumentError,
+    getDocumentById,
+    getDocuments,
+    getDocumentStats,
     saveFinancialDocument
 } from "../services/documents.service";
-import { uploadLimiter } from "../middleware/rate-limit";
+import {
+    createReportCsv,
+    createReportJson,
+    createReportPdf,
+    getReportExportFilename
+} from "../services/report-export.service";
+import { deletePDF, analysePDF, uploadPDF } from "../services/openai.service";
+import {
+    exportLimiter,
+    uploadLimiter
+} from "../middleware/rate-limit";
 import { generateDocumentHash } from "../utils/document-hash";
+import {
+    maxPdfBytes,
+    PdfUploadError,
+    validatePdfUpload
+} from "../utils/pdf-upload";
+import { ProcessingIndicator } from "../utils/processing-indicator";
 import { analysePrompt } from "../utils/prompts";
 import { parseAndValidateReport } from "../utils/report-validator";
-import { getDocuments } from "../services/documents.service";
 
 const router = Router();
+const MAX_ID = 2_147_483_647;
 
 const upload = multer({
-    storage: multer.memoryStorage()
-});
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: maxPdfBytes,
+        files: 1,
+        fields: 5,
+        parts: 6
+    },
+    fileFilter(_req, file, callback) {
+        if (
+            file.mimetype !== "application/pdf" ||
+            !file.originalname.toLowerCase().endsWith(".pdf")
+        ) {
+            callback(new PdfUploadError("Only PDF documents are accepted."));
+            return;
+        }
 
-
-
-router.get("/test-db", async (_req, res) => {
-    try {
-        const result = await db.query("SELECT NOW();");
-
-        return res.json({
-            success: true,
-            databaseTime: result.rows[0].now
-        });
-    } catch (error) {
-        const message = getErrorMessage(error);
-
-        console.error(message);
-
-        return res.status(500).json({
-            success: false,
-            error: message
-        });
+        callback(null, true);
     }
 });
 
-router.get('/', async (_req, res) => {
-  try {
-    const documents = await getDocuments();
+function parsePositiveInteger(value: unknown): number | null {
+    const text = Array.isArray(value) ? value[0] : value;
+    if (typeof text !== "string" || !/^\d+$/.test(text)) return null;
 
-    return res.json(documents);
-  } catch (error) {
-    console.error(error);
+    const parsed = Number(text);
+    return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= MAX_ID
+        ? parsed
+        : null;
+}
 
-    return res.status(500).json({
-      error: 'Failed to retrieve documents.'
+function parseNonNegativeInteger(value: unknown): number | null {
+    const text = Array.isArray(value) ? value[0] : value;
+    if (typeof text !== "string" || !/^\d+$/.test(text)) return null;
+
+    const parsed = Number(text);
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function sendError(
+    res: Response,
+    status: number,
+    error: string
+) {
+    return res.status(status).json({
+        success: false,
+        error,
+        requestId: res.locals.requestId
     });
-  }
+}
+
+function logRouteError(
+    res: Response,
+    context: string,
+    error: unknown
+): void {
+    console.error(
+        `[reports] ${context} request=${res.locals.requestId}`,
+        error
+    );
+}
+
+function uploadSinglePdf(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void {
+    upload.single("file")(req, res, error => {
+        if (!error) {
+            next();
+            return;
+        }
+
+        if (error instanceof multer.MulterError) {
+            const status = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+            const messages: Partial<Record<multer.MulterError["code"], string>> = {
+                LIMIT_FILE_SIZE: `The PDF exceeds the ${Math.round(maxPdfBytes / 1024 / 1024)} MB limit.`,
+                LIMIT_FILE_COUNT: "Only one PDF can be uploaded at a time.",
+                LIMIT_UNEXPECTED_FILE: "The PDF must be sent using the form field named file.",
+                LIMIT_FIELD_COUNT: "The upload contains too many form fields.",
+                LIMIT_PART_COUNT: "The upload contains too many multipart sections."
+            };
+            const message = messages[error.code] ??
+                `The PDF upload could not be accepted (${error.code}).`;
+
+            console.warn(
+                `[reports] upload rejected request=${res.locals.requestId} code=${error.code}`
+            );
+            sendError(res, status, message);
+            return;
+        }
+
+        if (error instanceof PdfUploadError) {
+            sendError(res, error.status, error.message);
+            return;
+        }
+
+        next(error);
+    });
+}
+
+router.get("/", async (req, res) => {
+    const companyId = req.query.companyId === undefined
+        ? undefined
+        : parsePositiveInteger(req.query.companyId);
+    const limit = req.query.limit === undefined
+        ? undefined
+        : parsePositiveInteger(req.query.limit);
+    const offset = req.query.offset === undefined
+        ? undefined
+        : parseNonNegativeInteger(req.query.offset);
+
+    if (req.query.companyId !== undefined && companyId === null) {
+        return sendError(res, 400, "Invalid companyId query parameter.");
+    }
+    if (req.query.limit !== undefined && limit === null) {
+        return sendError(res, 400, "Invalid limit query parameter.");
+    }
+    if (req.query.offset !== undefined && offset === null) {
+        return sendError(res, 400, "Invalid offset query parameter.");
+    }
+
+    try {
+        return res.json(await getDocuments({
+            companyId: companyId ?? undefined,
+            limit: limit ?? undefined,
+            offset: offset ?? undefined
+        }));
+    } catch (error) {
+        logRouteError(res, "list failed", error);
+        return sendError(res, 500, "Failed to retrieve documents.");
+    }
+});
+
+router.get("/stats", async (_req, res) => {
+    try {
+        return res.json(await getDocumentStats());
+    } catch (error) {
+        logRouteError(res, "stats failed", error);
+        return sendError(res, 500, "Failed to retrieve document statistics.");
+    }
+});
+
+router.get("/:documentId", async (req, res) => {
+    const documentId = parsePositiveInteger(req.params.documentId);
+    if (documentId === null) {
+        return sendError(res, 400, "Invalid document ID.");
+    }
+
+    try {
+        const document = await getDocumentById(documentId);
+        return document
+            ? res.json(document)
+            : sendError(res, 404, "Document not found.");
+    } catch (error) {
+        logRouteError(res, "detail failed", error);
+        return sendError(res, 500, "Failed to retrieve the document.");
+    }
+});
+
+router.get("/:documentId/export.pdf", exportLimiter, async (req, res) => {
+    const documentId = parsePositiveInteger(req.params.documentId);
+    if (documentId === null) {
+        return sendError(res, 400, "Invalid document ID.");
+    }
+
+    try {
+        const document = await getDocumentById(documentId);
+        if (!document) return sendError(res, 404, "Document not found.");
+
+        const pdf = createReportPdf(document);
+        const filename = getReportExportFilename(document, "pdf");
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.setHeader("Content-Length", pdf.length);
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.send(pdf);
+    } catch (error) {
+        logRouteError(res, "PDF export failed", error);
+        return sendError(res, 500, "Failed to export the document as PDF.");
+    }
+});
+
+router.get("/:documentId/export.csv", exportLimiter, async (req, res) => {
+    const documentId = parsePositiveInteger(req.params.documentId);
+    if (documentId === null) {
+        return sendError(res, 400, "Invalid document ID.");
+    }
+
+    try {
+        const document = await getDocumentById(documentId);
+        if (!document) return sendError(res, 404, "Document not found.");
+
+        const csv = createReportCsv(document);
+        const filename = getReportExportFilename(document, "csv");
+
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.send(csv);
+    } catch (error) {
+        logRouteError(res, "CSV export failed", error);
+        return sendError(res, 500, "Failed to export the document as CSV.");
+    }
+});
+
+router.get("/:documentId/export.json", exportLimiter, async (req, res) => {
+    const documentId = parsePositiveInteger(req.params.documentId);
+    if (documentId === null) {
+        return sendError(res, 400, "Invalid document ID.");
+    }
+
+    try {
+        const document = await getDocumentById(documentId);
+        if (!document) return sendError(res, 404, "Document not found.");
+
+        const json = createReportJson(document);
+        const filename = getReportExportFilename(document, "json");
+
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.send(json);
+    } catch (error) {
+        logRouteError(res, "JSON export failed", error);
+        return sendError(res, 500, "Failed to export the document as JSON.");
+    }
 });
 
 router.post(
     "/add",
     uploadLimiter,
-    upload.single("file"),
+    uploadSinglePdf,
     async (req, res) => {
+        const progress = new ProcessingIndicator(
+            String(res.locals.requestId ?? "unknown")
+        );
+        let uploadedPdfId: string | null = null;
+
         try {
             if (!req.file) {
-                return res.status(400).json({
-                    success: false,
-                    error: "No PDF uploaded."
-                });
+                return sendError(res, 400, "No PDF uploaded.");
             }
+
+            progress.start("Validating PDF");
+            validatePdfUpload(req.file);
 
             const pdf = req.file.buffer;
             const documentHash = generateDocumentHash(pdf);
-            const pdfId = await uploadPDF(pdf);
-            const aiResponse = await analysePDF(pdfId, analysePrompt);
-            const report = parseAndValidateReport(aiResponse);
 
-            await saveFinancialDocument(
+            progress.update("Checking for duplicates");
+            if (await documentExistsByHash(documentHash)) {
+                throw new DuplicateDocumentError();
+            }
+
+            progress.update("Uploading secure working copy");
+            uploadedPdfId = await uploadPDF(pdf, req.file.originalname);
+
+            progress.update("Extracting financial periods");
+            const aiResponse = await analysePDF(uploadedPdfId, analysePrompt);
+
+            progress.update("Validating and saving results");
+            const report = parseAndValidateReport(aiResponse);
+            const documentId = await saveFinancialDocument(
                 documentHash,
-                pdfId,
+                uploadedPdfId,
                 report
             );
+
+            progress.succeed(`Saved ${report.reportName}`);
 
             return res.status(201).json({
                 success: true,
                 message: "The PDF was successfully uploaded and analysed.",
-                uploadedPdfId: pdfId,
+                documentId,
+                uploadedPdfId,
                 documentHash,
                 report
             });
         } catch (error) {
-            if (error instanceof DuplicateDocumentError) {
-                return res.status(409).json({
-                    success: false,
-                    error: error.message
-                });
+            progress.fail("Document processing failed");
+
+            if (uploadedPdfId) {
+                await deletePDF(uploadedPdfId);
             }
 
-            const message = getErrorMessage(error);
+            if (error instanceof DuplicateDocumentError) {
+                return sendError(res, 409, error.message);
+            }
+            if (error instanceof PdfUploadError) {
+                return sendError(res, error.status, error.message);
+            }
 
-            console.error(message);
+            logRouteError(res, "processing failed", error);
 
-            return res.status(500).json({
-                success: false,
-                error: message
-            });
+            if (
+                error instanceof Error &&
+                error.message === "OPENAI_API_KEY is not configured."
+            ) {
+                return sendError(res, 503, "The document analysis service is not configured.");
+            }
+
+            if (
+                error instanceof Error &&
+                /extracted|reporting periods|analysis service/i.test(error.message)
+            ) {
+                return sendError(res, 422, error.message);
+            }
+
+            return sendError(
+                res,
+                500,
+                "The document could not be processed. Check the request ID in the server logs."
+            );
         }
     }
 );
 
-// This needs to be worked on more
-router.delete("/companies/:companyId/reports/:period", async (req, res) => {
-    try {
-        const companyId = Number(req.params.companyId);
-        const period = req.params.period;
+router.delete("/:documentId", async (req, res) => {
+    const documentId = parsePositiveInteger(req.params.documentId);
+    if (documentId === null) {
+        return sendError(res, 400, "Invalid document ID.");
+    }
 
-        if (!companyId || !period) {
-            return res.status(400).json({
-                success: false,
-                error: "Invalid company or period"
-            });
+    try {
+        const deleted = await deleteFinancialDocument(documentId);
+        if (!deleted) {
+            return sendError(res, 404, "Document not found.");
         }
 
-        const result = await db.query(
-            `
-            DELETE FROM financial_periods
-            WHERE company_id = $1
-            AND period = $2
-            `,
-            [companyId, period]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({
-                success: false,
-                error: "Report not found"
-            });
+        if (deleted.openaiFileId) {
+            await deletePDF(deleted.openaiFileId);
         }
 
         return res.json({
             success: true,
-            message: `${period} deleted successfully`
+            message: `${deleted.reportName} was deleted successfully.`,
+            documentId: deleted.documentId
         });
     } catch (error) {
-        const message = getErrorMessage(error);
-
-        console.error(message);
-
-        return res.status(500).json({
-            success: false,
-            error: message
-        });
+        logRouteError(res, "delete failed", error);
+        return sendError(res, 500, "Failed to delete the document.");
     }
 });
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : "Unknown error";
-}
 
 export default router;

@@ -60,20 +60,26 @@ function sendError(
 ) {
     return res.status(status).json({
         success: false,
-        error: message
+        error: message,
+        requestId: res.locals.requestId
     });
 }
 
 // Converts unexpected errors into a clean API response.
 function handleError(res: Response, error: unknown) {
-    const message = error instanceof Error
-        ? error.message
-        : "Unknown error";
+    const message = error instanceof Error ? error.message : "Unknown error";
 
     // Service errors containing "not found" should return a 404.
-    const status = /not found/i.test(message) ? 404 : 500;
+    if (/not found/i.test(message)) {
+        return sendError(res, 404, message);
+    }
 
-    return sendError(res, status, message);
+    console.error(
+        `[companies] request failed request=${res.locals.requestId}`,
+        error
+    );
+
+    return sendError(res, 500, "Failed to retrieve company data.");
 }
 
 // Common company ID validation used by multiple routes.
