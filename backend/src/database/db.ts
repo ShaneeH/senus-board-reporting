@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 import { Pool } from "pg";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -13,6 +14,9 @@ export const pool = new Pool({
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000
 });
+
+// Compatibility for existing files that import { db }
+export const db = pool;
 
 pool.on("error", error => {
   console.error("[database] idle client error", error);
