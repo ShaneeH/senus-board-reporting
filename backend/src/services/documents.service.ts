@@ -64,7 +64,7 @@ const DOCUMENT_SELECT = `
         d.report_date AS "reportDate",
         d.currency,
         d.source,
-        d.created_at AS "uploadedAt",
+        d.uploaded_at AS "uploadedAt",
         COALESCE(
             JSONB_AGG(
                 JSONB_BUILD_OBJECT(
@@ -87,9 +87,12 @@ const DOCUMENT_SELECT = `
             '[]'::JSONB
         ) AS periods
     FROM documents d
-    JOIN companies c ON c.company_id = d.company_id
-    LEFT JOIN document_periods dp ON dp.document_id = d.document_id
-    LEFT JOIN financial_periods fp ON fp.period_id = dp.period_id
+    JOIN companies c
+        ON c.company_id = d.company_id
+    LEFT JOIN document_periods dp
+        ON dp.document_id = d.document_id
+    LEFT JOIN financial_periods fp
+        ON fp.period_id = dp.period_id
 `;
 
 const DOCUMENT_GROUP = `
@@ -102,7 +105,7 @@ const DOCUMENT_GROUP = `
         d.report_date,
         d.currency,
         d.source,
-        d.created_at
+        d.uploaded_at
 `;
 
 export async function documentExistsByHash(
@@ -135,7 +138,11 @@ export async function saveFinancialDocument(
             throw new DuplicateDocumentError();
         }
 
-        const companyId = await getOrCreateCompany(client, report.company);
+        const companyId = await getOrCreateCompany(
+            client,
+            report.company
+        );
+
         const documentId = await insertDocument(
             client,
             companyId,
@@ -150,10 +157,16 @@ export async function saveFinancialDocument(
                 companyId,
                 period
             );
-            await linkDocumentToPeriod(client, documentId, periodId);
+
+            await linkDocumentToPeriod(
+                client,
+                documentId,
+                periodId
+            );
         }
 
         await client.query("COMMIT");
+
         return documentId;
     } catch (error) {
         await client.query("ROLLBACK");
@@ -181,23 +194,42 @@ export async function getDocuments(
 
     if (options.companyId !== undefined) {
         values.push(options.companyId);
-        conditions.push(`d.company_id = $${values.length}`);
+
+        conditions.push(
+            `d.company_id = $${values.length}`
+        );
     }
 
-    const limit = Math.min(Math.max(options.limit ?? 100, 1), 100);
-    const offset = Math.max(options.offset ?? 0, 0);
+    const limit = Math.min(
+        Math.max(options.limit ?? 100, 1),
+        100
+    );
+
+    const offset = Math.max(
+        options.offset ?? 0,
+        0
+    );
 
     values.push(limit);
     const limitPosition = values.length;
+
     values.push(offset);
     const offsetPosition = values.length;
 
     const result = await pool.query<FinancialDocumentRecord>(
         `
         ${DOCUMENT_SELECT}
-        ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+
+        ${
+            conditions.length
+                ? `WHERE ${conditions.join(" AND ")}`
+                : ""
+        }
+
         ${DOCUMENT_GROUP}
+
         ORDER BY d.document_id DESC
+
         LIMIT $${limitPosition}
         OFFSET $${offsetPosition};
         `,
@@ -213,8 +245,11 @@ export async function getDocumentById(
     const result = await pool.query<FinancialDocumentRecord>(
         `
         ${DOCUMENT_SELECT}
+
         WHERE d.document_id = $1
+
         ${DOCUMENT_GROUP}
+
         LIMIT 1;
         `,
         [documentId]
@@ -232,14 +267,15 @@ export async function getDocumentStats(): Promise<{
         documents: string;
         companies: string;
         latestUpload: string | null;
-    }>(`
+    }>(
+        `
         SELECT
             COUNT(*)::TEXT AS documents,
-            COUNT(DISTINCT company_id)::TEXT AS companies,
-            MAX(d.created_at) AS "latestUpload"
-        FROM documents d
-        JOIN companies c ON c.company_id = d.company_id;
-    `);
+            COUNT(DISTINCT d.company_id)::TEXT AS companies,
+            MAX(d.uploaded_at) AS "latestUpload"
+        FROM documents d;
+        `
+    );
 
     return {
         documents: Number(result.rows[0].documents),
@@ -263,7 +299,11 @@ export async function deleteFinancialDocument(
             openai_file_id: string | null;
         }>(
             `
-            SELECT document_id, company_id, report_name, openai_file_id
+            SELECT
+                document_id,
+                company_id,
+                report_name,
+                openai_file_id
             FROM documents
             WHERE document_id = $1
             FOR UPDATE;
@@ -277,18 +317,35 @@ export async function deleteFinancialDocument(
         }
 
         const row = document.rows[0];
-        const periodResult = await client.query<{ period_id: number }>(
-            "SELECT period_id FROM document_periods WHERE document_id = $1",
+
+        const periodResult = await client.query<{
+            period_id: number;
+        }>(
+            `
+            SELECT period_id
+            FROM document_periods
+            WHERE document_id = $1;
+            `,
             [documentId]
         );
-        const periodIds = periodResult.rows.map(item => item.period_id);
+
+        const periodIds = periodResult.rows.map(
+            item => item.period_id
+        );
 
         await client.query(
-            "DELETE FROM document_periods WHERE document_id = $1",
+            `
+            DELETE FROM document_periods
+            WHERE document_id = $1;
+            `,
             [documentId]
         );
+
         await client.query(
-            "DELETE FROM documents WHERE document_id = $1",
+            `
+            DELETE FROM documents
+            WHERE document_id = $1;
+            `,
             [documentId]
         );
 
@@ -312,11 +369,13 @@ export async function deleteFinancialDocument(
             DELETE FROM companies c
             WHERE c.company_id = $1
               AND NOT EXISTS (
-                  SELECT 1 FROM documents d
+                  SELECT 1
+                  FROM documents d
                   WHERE d.company_id = c.company_id
               )
               AND NOT EXISTS (
-                  SELECT 1 FROM financial_periods fp
+                  SELECT 1
+                  FROM financial_periods fp
                   WHERE fp.company_id = c.company_id
               );
             `,
@@ -344,13 +403,14 @@ async function getOrCreateCompany(
 ): Promise<number> {
     const normalisedName = companyName.trim();
 
-    // Serialise creation of the same company without requiring a unique index.
     await client.query(
         "SELECT pg_advisory_xact_lock(hashtext(LOWER($1)))",
         [normalisedName]
     );
 
-    const existing = await client.query<{ company_id: number }>(
+    const existing = await client.query<{
+        company_id: number;
+    }>(
         `
         SELECT company_id
         FROM companies
@@ -365,9 +425,13 @@ async function getOrCreateCompany(
         return existing.rows[0].company_id;
     }
 
-    const inserted = await client.query<{ company_id: number }>(
+    const inserted = await client.query<{
+        company_id: number;
+    }>(
         `
-        INSERT INTO companies (company_name)
+        INSERT INTO companies (
+            company_name
+        )
         VALUES ($1)
         RETURNING company_id;
         `,
@@ -384,7 +448,9 @@ async function insertDocument(
     openaiFileId: string,
     report: FinancialReport
 ): Promise<number> {
-    const result = await client.query<{ document_id: number }>(
+    const result = await client.query<{
+        document_id: number;
+    }>(
         `
         INSERT INTO documents (
             company_id,
@@ -396,7 +462,16 @@ async function insertDocument(
             currency,
             source
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8
+        )
         RETURNING document_id;
         `,
         [
@@ -419,16 +494,22 @@ async function upsertFinancialPeriod(
     companyId: number,
     period: FinancialPeriod
 ): Promise<number> {
-    const existing = await client.query<{ period_id: number }>(
+    const existing = await client.query<{
+        period_id: number;
+    }>(
         `
         SELECT period_id
         FROM financial_periods
-        WHERE company_id = $1 AND period = $2
+        WHERE company_id = $1
+          AND period = $2
         ORDER BY period_id
         LIMIT 1
         FOR UPDATE;
         `,
-        [companyId, period.period]
+        [
+            companyId,
+            period.period
+        ]
     );
 
     if (existing.rows[0]) {
@@ -438,17 +519,50 @@ async function upsertFinancialPeriod(
             `
             UPDATE financial_periods
             SET
-                period_end = COALESCE($2, period_end),
-                period_label = COALESCE($3, period_label),
-                revenue = COALESCE($4, revenue),
-                gross_profit = COALESCE($5, gross_profit),
-                operating_profit = COALESCE($6, operating_profit),
-                ebitda = COALESCE($7, ebitda),
-                net_profit = COALESCE($8, net_profit),
-                cash = COALESCE($9, cash),
-                debt = COALESCE($10, debt),
-                customers = COALESCE($11, customers),
-                net_assets = COALESCE($12, net_assets),
+                period_end = COALESCE(
+                    $2,
+                    period_end
+                ),
+                period_label = COALESCE(
+                    $3,
+                    period_label
+                ),
+                revenue = COALESCE(
+                    $4,
+                    revenue
+                ),
+                gross_profit = COALESCE(
+                    $5,
+                    gross_profit
+                ),
+                operating_profit = COALESCE(
+                    $6,
+                    operating_profit
+                ),
+                ebitda = COALESCE(
+                    $7,
+                    ebitda
+                ),
+                net_profit = COALESCE(
+                    $8,
+                    net_profit
+                ),
+                cash = COALESCE(
+                    $9,
+                    cash
+                ),
+                debt = COALESCE(
+                    $10,
+                    debt
+                ),
+                customers = COALESCE(
+                    $11,
+                    customers
+                ),
+                net_assets = COALESCE(
+                    $12,
+                    net_assets
+                ),
                 updated_at = CURRENT_TIMESTAMP
             WHERE period_id = $1;
             `,
@@ -471,7 +585,9 @@ async function upsertFinancialPeriod(
         return periodId;
     }
 
-    const inserted = await client.query<{ period_id: number }>(
+    const inserted = await client.query<{
+        period_id: number;
+    }>(
         `
         INSERT INTO financial_periods (
             company_id,
@@ -489,8 +605,19 @@ async function upsertFinancialPeriod(
             net_assets
         )
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7,
-            $8, $9, $10, $11, $12, $13
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13
         )
         RETURNING period_id;
         `,
@@ -521,14 +648,23 @@ async function linkDocumentToPeriod(
 ): Promise<void> {
     await client.query(
         `
-        INSERT INTO document_periods (document_id, period_id)
-        SELECT $1, $2
+        INSERT INTO document_periods (
+            document_id,
+            period_id
+        )
+        SELECT
+            $1,
+            $2
         WHERE NOT EXISTS (
             SELECT 1
             FROM document_periods
-            WHERE document_id = $1 AND period_id = $2
+            WHERE document_id = $1
+              AND period_id = $2
         );
         `,
-        [documentId, periodId]
+        [
+            documentId,
+            periodId
+        ]
     );
 }

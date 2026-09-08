@@ -135,8 +135,7 @@ function uploadSinglePdf(
     });
 }
 
-router.get("/", async (req, res) => {
-    const companyId = req.query.companyId === undefined
+router.get("/", async (req, res) => { const companyId = req.query.companyId === undefined
         ? undefined
         : parsePositiveInteger(req.query.companyId);
     const limit = req.query.limit === undefined
